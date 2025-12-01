@@ -1,31 +1,42 @@
-import Background from '@/components/background/Background'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
 import CardNav from '@/components/ui/CardNav'
 import Image from 'next/image'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 
 export default function Portal() {
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh relative">
+      {/* Theme Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Animated background */}
       <AnimatedBackground />
-      {/* fundo global atrás do conteúdo */}
-      <Background overlay="dark" />
 
       {/* conteúdo acima do fundo */}
       <div className="relative z-10 grid place-items-center px-4 py-10">
         <div className="w-full max-w-6xl text-center">
+          {/* Logo Azul (Light Mode) */}
+          <Image
+            src="/images/Logo.png"
+            alt="lbr engenharia e consultoria"
+            width={200}
+            height={96}
+            className="mx-auto h-16 md:h-20 lg:h-24 w-auto mb-4 block dark:hidden"
+          />
+          {/* Logo Branca (Dark Mode) */}
           <Image
             src="/images/LogoBranca.png"
             alt="lbr engenharia e consultoria"
             width={200}
             height={96}
-            className="mx-auto h-16 md:h-20 lg:h-24 w-auto mb-4"
-            priority
+            className="mx-auto h-16 md:h-20 lg:h-24 w-auto mb-4 hidden dark:block"
           />
 
           {/* Título */}
           <h1
-            className="text-[#ffffff] font-extrabold leading-tight 
+            className="text-[#2f4982] dark:text-white font-extrabold leading-tight 
                        text-[28px] sm:text-[40px] md:text-[56px]"
           >
             Sistema de Gestão do Conhecimento

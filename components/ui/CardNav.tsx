@@ -38,10 +38,11 @@ export default function CardNav({
       aria-label={title}
       className={[
         "group relative overflow-hidden rounded-3xl",
-        "w-[300px] h-[500px] shadow-2xl shadow-black/20",
+        "w-[300px] h-[500px]",
         "transition-all duration-500 ease-out will-change-transform hover:scale-[1.03]",
         "focus:outline-none focus:ring-4 focus:ring-blue-500/40",
-        "cursor-pointer border border-white/10",
+        "cursor-pointer",
+        "bg-[#1e293b]", // Fundo escuro para garantir contraste de imagens transparentes
         className,
       ].join(" ")}
     >
@@ -52,8 +53,7 @@ export default function CardNav({
           alt=""
           fill
           quality={100}
-          priority
-          className="object-cover z-0 transition-transform duration-700 ease-out group-hover:scale-110"
+          className="object-cover z-0 transition-transform duration-700 ease-out group-hover:scale-110 bg-zinc-800"
           sizes="(max-width: 768px) 100vw, 500px"
         />
       ) : (
@@ -64,11 +64,11 @@ export default function CardNav({
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-60 z-10" />
 
       {/* Título padrão: canto inferior-esquerdo */}
-      <div className="absolute inset-x-0 bottom-0 p-8 z-20 pointer-events-none transition-all duration-500 group-hover:-translate-y-2">
+      <div className="absolute inset-x-0 bottom-0 p-8 z-20 pointer-events-none transition-all duration-500 group-hover:-translate-y-2 text-center">
         <p className="text-white text-3xl font-bold tracking-tight drop-shadow-md">
           {title}
         </p>
-        <div className="h-1 w-12 bg-blue-500 mt-3 rounded-full transition-all duration-500 group-hover:w-20 group-hover:bg-blue-400" />
+        <div className="h-1 w-12 bg-[#2f4982] mt-3 rounded-full transition-all duration-500 group-hover:w-24 group-hover:bg-[#4a6fa5] mx-auto" />
       </div>
 
       {/* Painel Glassmorphism que APARECE no hover/focus */}

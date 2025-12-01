@@ -120,19 +120,19 @@ export default function SessionsPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    {session.user.picture_url ? (
+                    {session.user?.picture_url ? (
                       <img src={session.user.picture_url} alt="" className="w-10 h-10 rounded-full" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
-                        {session.user.name?.[0]?.toUpperCase() || session.user.email[0].toUpperCase()}
+                        {session.user?.name?.[0]?.toUpperCase() || session.user?.email?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-white truncate max-w-[150px]">
-                        {session.user.name || 'Usuário'}
+                        {session.user?.name || 'Usuário'}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[150px]">
-                        {session.user.email}
+                        {session.user?.email || 'Email não disponível'}
                       </p>
                     </div>
                   </div>

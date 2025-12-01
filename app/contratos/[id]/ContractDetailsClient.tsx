@@ -28,6 +28,7 @@ import ObraMapViewer, { type ObraWithGeometry, type NonConformityMarker } from '
 import ObraAnnotationSidebar from './components/ObraAnnotationSidebar'
 import MeasurementExplorer from './measurements/components/MeasurementExplorer'
 import ProductExplorer from './products/components/ProductExplorer'
+import FichaModal from '@/components/modals/FichaModal'
 
 type Contract = {
   id: string
@@ -97,6 +98,9 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [clickCoords, setClickCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [nonConformities, setNonConformities] = useState<NonConformityMarker[]>([])
   const [selectedNonConformityId, setSelectedNonConformityId] = useState<string | null>(null)
+  const [fichaModalOpen, setFichaModalOpen] = useState(false)
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
+  const [selectedPersonType, setSelectedPersonType] = useState<'INTERNA' | 'CLIENTE'>('INTERNA')
 
   const handleNonConformityClick = (nc: NonConformityMarker) => {
     console.log('Parent received NC click:', nc)
@@ -126,6 +130,17 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
     setSelectedObra(null)
     setClickCoords(null)
     setSelectedNonConformityId(null)
+  }
+
+  const handlePersonClick = (person: Person, type: 'INTERNA' | 'CLIENTE') => {
+    setSelectedPerson(person)
+    setSelectedPersonType(type)
+    setFichaModalOpen(true)
+  }
+
+  const handleFichaModalClose = () => {
+    setFichaModalOpen(false)
+    setSelectedPerson(null)
   }
 
   useEffect(() => {
@@ -212,8 +227,9 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
     ['GESTOR_AREA', 'GERENTE_ENGENHARIA'].includes(p.role.toUpperCase())
   )
 
+  // Equipe é qualquer participante que NÃO seja cliente
   const equipeParticipants = participants.filter((p) =>
-    ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL'].includes(p.role.toUpperCase())
+    !['GESTOR_AREA', 'GERENTE_ENGENHARIA'].includes(p.role.toUpperCase())
   )
 
   const sections = [
@@ -425,7 +441,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                     clienteParticipants.map((p, i) => (
                       <div
                         key={i}
-                        className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10"
+                        onClick={() => handlePersonClick(p.person, 'CLIENTE')}
+                        className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-secondary dark:text-secondary-light mb-2 uppercase tracking-wider">
                           {prettyRole(p.role)}
@@ -458,7 +475,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                     equipeParticipants.map((p, i) => (
                       <div
                         key={i}
-                        className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10"
+                        onClick={() => handlePersonClick(p.person, 'INTERNA')}
+                        className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wider">
                           {prettyRole(p.role)}
@@ -593,6 +611,48 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
         clickCoords={clickCoords}
         selectedNonConformityId={selectedNonConformityId}
         onBack={() => setSelectedNonConformityId(null)}
+      />
+
+      {/* Ficha Modal */}
+      <FichaModal
+        isOpen={fichaModalOpen}
+        onClose={handleFichaModalClose}
+        onSuccess={() => {}}
+        mode="view"
+        initialData={selectedPerson ? {
+          id: selectedPerson.id,
+          nome: selectedPerson.full_name,
+          email: selectedPerson.email || '',
+          celular: selectedPerson.phone || '',
+          cargo_cliente: selectedPerson.office || '',
+          tipo: selectedPersonType,
+          foto_perfil_url: '',
+          // Add other default fields that might be needed
+          cpf: '',
+          rg: '',
+          data_nascimento: '',
+          nacionalidade: '',
+          estado_civil: '',
+          genero: '',
+          telefone: '',
+          endereco: '',
+          numero: '',
+          complemento: '',
+          bairro: '',
+          cidade: '',
+          estado: '',
+          cep: '',
+          profissao: '',
+          registro_profissional: '',
+          especialidades: '',
+          resumo_profissional: '',
+          idiomas: '',
+          observacoes: '',
+          experiencias: [],
+          formacoes: [],
+          certificados: [],
+        } : undefined}
+        defaultTipo={selectedPersonType}
       />
     </div>
     </>
