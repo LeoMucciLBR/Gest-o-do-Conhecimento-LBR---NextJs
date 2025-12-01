@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 
 // GET /api/fichas - List all fichas with filters
 export async function GET(request: NextRequest) {

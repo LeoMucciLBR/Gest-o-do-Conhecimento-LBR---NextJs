@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 import { cookies } from 'next/headers'
 
 export async function requireAuth(request: NextRequest) {
@@ -21,10 +21,10 @@ export async function requireAuth(request: NextRequest) {
 
   return {
     user: {
-      id: session.users.id,
-      email: session.users.email,
-      name: session.users.name ?? undefined,
-      photoUrl: session.users.picture_url ?? undefined,
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name ?? undefined,
+      photoUrl: session.user.picture_url ?? undefined,
     },
   }
 }

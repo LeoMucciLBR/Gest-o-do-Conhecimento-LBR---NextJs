@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
@@ -49,7 +49,7 @@ export async function POST(
     const photo = await prisma.non_conformity_photos.create({
       data: {
         non_conformity_id: nonConformityId,
-        user_id: session.users.id,
+        user_id: session.user.id,
         filename: file.name,
         content_type: file.type,
         storage_url: storageUrl,

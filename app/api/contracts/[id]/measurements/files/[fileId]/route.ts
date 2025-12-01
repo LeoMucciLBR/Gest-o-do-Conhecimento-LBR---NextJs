@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 import { prisma } from '@/lib/prisma'
 import { unlink } from 'fs/promises'
 import path from 'path'
@@ -23,7 +23,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.users.role !== 'ADMIN' && session.users.role !== 'ENGENHEIRO') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -82,7 +82,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.users.role !== 'ADMIN' && session.users.role !== 'ENGENHEIRO') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 

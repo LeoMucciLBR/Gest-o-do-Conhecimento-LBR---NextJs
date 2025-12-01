@@ -54,7 +54,7 @@ export default function Portal() {
 
             <CardNav
               title="Engenharia"
-              to="/engenharia"
+              to="/engenharia/contratos"
               image="/images/ImgDepEngenharia.png"
               items={[
                 { label: 'Contratos', to: '/engenharia/contratos' },
@@ -65,7 +65,7 @@ export default function Portal() {
 
             <CardNav
               title="Financeiro"
-              to="/financeiro"
+              to="/financeiro/visao-geral"
               image="/images/imgDepFinanceiro.jpg"
               items={[
                 { label: 'Visão Geral', to: '/financeiro/visao-geral' },

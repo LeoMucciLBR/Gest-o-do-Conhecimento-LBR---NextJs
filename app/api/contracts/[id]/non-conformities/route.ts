@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 
 // GET /api/contracts/[id]/non-conformities
 export async function GET(

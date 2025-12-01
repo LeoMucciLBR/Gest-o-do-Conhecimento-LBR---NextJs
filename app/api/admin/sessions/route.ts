@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const formattedSessions = sessions.map(session => ({
       id: session.id,
       userId: session.user_id,
-      user: session.users,
+      user: session.user,
       ipAddress: session.ip_address,
       userAgent: session.user_agent,
       location: session.location,

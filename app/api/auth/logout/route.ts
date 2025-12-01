@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revokeSession } from '@/lib/auth/session'
+import { validateSession, revokeSession } from '@/lib/services/sessionManager'
 import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
@@ -8,7 +8,11 @@ export async function POST(request: NextRequest) {
     const sessionToken = cookieStore.get('sid')?.value
 
     if (sessionToken) {
-      await revokeSession(sessionToken)
+      // Primeiro validamos para obter o ID da sessão
+      const session = await validateSession(sessionToken)
+      if (session) {
+        await revokeSession(session.sessionId)
+      }
     }
 
     cookieStore.delete('sid')

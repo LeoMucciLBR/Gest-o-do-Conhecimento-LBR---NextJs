@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 
 // GET /api/obras/[id]/non-conformities
 export async function GET(
@@ -172,7 +172,7 @@ export async function POST(
     const nonConformity = await prisma.obra_non_conformities.create({
       data: {
         obra_id: obraId,
-        user_id: session.users.id,
+        user_id: session.user.id,
         km,
         description,
         severity: severity || 'BAIXA',

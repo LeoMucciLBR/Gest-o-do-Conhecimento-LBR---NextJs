@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
@@ -11,19 +11,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    const session = await validateSession(sessionToken)
+    const result = await validateSession(sessionToken)
 
-    if (!session) {
+    if (!result) {
       return NextResponse.json({ error: 'Sessão inválida' }, { status: 401 })
     }
 
+    const { user } = result
+
     return NextResponse.json({
       users: {
-        id: session.users.id,
-        email: session.users.email,
-        name: session.users.name ?? undefined,
-        role: session.users.role,
-        photoUrl: session.users.picture_url ?? undefined,
+        id: user.id,
+        email: user.email,
+        name: user.name ?? undefined,
+        role: user.role,
+        photoUrl: user.picture_url ?? undefined,
       },
     })
   } catch (error) {

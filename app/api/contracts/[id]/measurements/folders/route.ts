@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { validateSession } from '@/lib/auth/session'
+import { validateSession } from '@/lib/services/sessionManager'
 import { prisma } from '@/lib/prisma'
 
 // GET /api/contracts/[id]/measurements/folders - List folders
@@ -92,10 +92,10 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('Session validated for user:', session.users.email, 'Role:', session.users.role)
+    console.log('Session validated for user:', session.user.email, 'Role:', session.user.role)
 
     // Check if user has write permission
-    if (session.users.role !== 'ADMIN' && session.users.role !== 'ENGENHEIRO') {
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
       console.log('Insufficient permissions')
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
@@ -146,7 +146,7 @@ export async function POST(
         parent_folder_id: parent_folder_id || null,
         name: name.trim(),
         description: description || null,
-        created_by: session.users.id
+        created_by: session.user.id
       },
       include: {
         creator: {

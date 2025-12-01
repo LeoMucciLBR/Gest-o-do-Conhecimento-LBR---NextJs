@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth/password'
-import { createSession } from '@/lib/auth/session'
+import { createSession } from '@/lib/services/sessionManager'
 import { auditLogin } from '@/lib/auth/audit'
 import { cookies } from 'next/headers'
 
@@ -74,11 +74,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Login normal - criar sessão
-    const sessionToken = await createSession(
-      user.id,
-      request.ip,
-      request.headers.get('user-agent') ?? undefined
-    )
+    const { token: sessionToken } = await createSession({
+      userId: user.id,
+      ipAddress: request.ip,
+      userAgent: request.headers.get('user-agent') ?? undefined
+    })
 
     await auditLogin({
       userId: user.id,
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: Number(process.env.SESSION_TTL_DAYS ?? '7') * 24 * 60 * 60,
+      // maxAge removido para ser cookie de sessão (expira ao fechar navegador)
     })
 
     return NextResponse.json({
