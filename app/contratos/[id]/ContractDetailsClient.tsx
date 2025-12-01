@@ -1,0 +1,600 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  FileText,
+  MapPin,
+  ArrowLeft,
+  Users,
+  UserCheck,
+  Edit,
+  Building2,
+  Briefcase,
+  Target,
+  Info,
+  ExternalLink,
+  Download,
+  Share2,
+  Ruler,
+  Box,
+  Code,
+  User,
+  AlertCircle,
+} from 'lucide-react'
+import { apiFetch } from '@/lib/api/api'
+import AnimatedBackground from '@/components/ui/AnimatedBackground'
+import ObraMapViewer, { type ObraWithGeometry, type NonConformityMarker } from './components/ObraMapViewer'
+import ObraAnnotationSidebar from './components/ObraAnnotationSidebar'
+import MeasurementExplorer from './measurements/components/MeasurementExplorer'
+import ProductExplorer from './products/components/ProductExplorer'
+
+type Contract = {
+  id: string
+  name: string
+  sector: string | null
+  object: string | null
+  scope: string | null
+  status: 'Ativo' | 'Inativo' | 'Pendente'
+  location: string | null
+  lamina_url: string | null
+  image_url: string | null
+}
+
+type Organization = {
+  id: string
+  name: string
+}
+
+type Person = {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  office: string | null
+}
+
+type Participant = {
+  role: string
+  person: Person
+}
+
+type ContractDetails = {
+  contract: Contract
+  organization: Organization | null
+  participants: Participant[]
+  obras?: any[]
+}
+
+function prettyRole(role: string): string {
+  const normalized = role.trim().toUpperCase().replace(/\s+/g, '_')
+  switch (normalized) {
+    case 'GESTOR_AREA':
+      return 'Gestor da Área'
+    case 'GERENTE_ENGENHARIA':
+      return 'Gerente de Engenharia'
+    case 'COORDENADORA':
+      return 'Coordenadora'
+    case 'ENGENHEIRO_RESPONSAVEL':
+      return 'Engenheiro Responsável'
+    default:
+      return role || 'Função'
+  }
+}
+
+interface ContractDetailsClientProps {
+  contractId: string
+}
+
+export default function ContractDetailsClient({ contractId }: ContractDetailsClientProps) {
+  const router = useRouter()
+  const [data, setData] = useState<ContractDetails | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const [selectedObra, setSelectedObra] = useState<ObraWithGeometry | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [clickCoords, setClickCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [nonConformities, setNonConformities] = useState<NonConformityMarker[]>([])
+  const [selectedNonConformityId, setSelectedNonConformityId] = useState<string | null>(null)
+
+  const handleNonConformityClick = (nc: NonConformityMarker) => {
+    console.log('Parent received NC click:', nc)
+    
+    // Find which obra this non-conformity belongs to based on its KM
+    const obraForNc = data?.obras?.find(obra => {
+      const km = nc.km
+      return km >= obra.km_inicio && km <= obra.km_fim
+    })
+    
+    if (obraForNc) {
+      setSelectedObra(obraForNc)
+    }
+    
+    setSelectedNonConformityId(nc.id)
+    setIsSidebarOpen(true)
+  }
+
+  const handleObraClick = (obra: ObraWithGeometry, coords?: { lat: number; lng: number }) => {
+    setSelectedObra(obra)
+    setClickCoords(coords || null)
+    setIsSidebarOpen(true)
+  }
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false)
+    setSelectedObra(null)
+    setClickCoords(null)
+    setSelectedNonConformityId(null)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadContract() {
+      try {
+        setLoading(true)
+        setError(null)
+        const result = await apiFetch<ContractDetails>(`/contracts/${contractId}`)
+        if (!cancelled) setData(result)
+
+        // Fetch non-conformities
+        try {
+          const ncResult = await apiFetch<any[]>(`/contracts/${contractId}/non-conformities`)
+          if (!cancelled && ncResult) {
+            // Map to marker format if needed, or ensure API returns compatible format
+            // API returns: { id, km, description, severity, latitude, longitude, ... }
+            // Marker expects: { id, lat, lng, severity, description, km }
+            const markers: NonConformityMarker[] = ncResult.map(nc => ({
+              id: nc.id,
+              lat: Number(nc.latitude),
+              lng: Number(nc.longitude),
+              severity: nc.severity,
+              description: nc.description,
+              km: Number(nc.km)
+            })).filter(m => !isNaN(m.lat) && !isNaN(m.lng))
+            
+            setNonConformities(markers)
+          }
+        } catch (e) {
+          console.error('Error fetching non-conformities:', e)
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err?.message || 'Falha ao carregar detalhes')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadContract()
+    return () => {
+      cancelled = true
+    }
+  }, [contractId])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-lbr-primary mb-4" />
+          <p className="text-slate-700 dark:text-gray-300 text-lg font-semibold">Carregando contrato...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8 bg-red-50 dark:bg-red-900/20 rounded-3xl border-2 border-red-200 dark:border-red-800">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-red-700 dark:text-red-400 mb-2">Erro ao Carregar</h2>
+          <p className="text-red-600 dark:text-red-300">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <p className="text-slate-700 dark:text-gray-300 text-lg">Contrato não encontrado.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const { contract, organization, participants } = data
+
+  const clienteParticipants = participants.filter((p) =>
+    ['GESTOR_AREA', 'GERENTE_ENGENHARIA'].includes(p.role.toUpperCase())
+  )
+
+  const equipeParticipants = participants.filter((p) =>
+    ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL'].includes(p.role.toUpperCase())
+  )
+
+  const sections = [
+    { id: 'lamina', label: 'LÂMINA', icon: <FileText className="w-6 h-6" />, gradient: 'from-blue-500 to-cyan-500' },
+    { id: 'localizacao', label: 'LOCALIZAÇÃO', icon: <MapPin className="w-6 h-6" />, gradient: 'from-amber-500 to-orange-500' },
+    { id: 'medicoes', label: 'MEDIÇÕES', icon: <Ruler className="w-6 h-6" />, gradient: 'from-violet-500 to-purple-500' },
+    { id: 'produtos', label: 'PRODUTOS', icon: <Box className="w-6 h-6" />, gradient: 'from-pink-500 to-rose-500' },
+    { id: 'software', label: 'SOFTWARE', icon: <Code className="w-6 h-6" />, gradient: 'from-indigo-500 to-blue-500' },
+    { id: 'cliente', label: 'INFORMAÇÕES CLIENTE', icon: <User className="w-6 h-6" />, gradient: 'from-secondary to-pink-500' },
+    { id: 'equipe', label: 'INFORMAÇÕES EQUIPE', icon: <Users className="w-6 h-6" />, gradient: 'from-green-500 to-emerald-500' },
+    { id: 'dificuldades', label: 'DIFICULDADES E APRENDIZADOS', icon: <AlertCircle className="w-6 h-6" />, gradient: 'from-red-500 to-orange-600' },
+  ]
+
+  return (
+    <>
+      <AnimatedBackground />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20 relative overflow-hidden z-10">
+      {/* Animated Background */}
+      <div className="fixed inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='black' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)'/%3E%3C/svg%3E")`
+        }} />
+      </div>
+
+      <div className="relative">
+        {/* Header */}
+        <div className="sticky top-0 z-30 backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border-b border-slate-200/50 dark:border-gray-700/50 shadow-lg">
+          <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4 max-w-7xl">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => router.back()}
+                className="group flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#2f4982] text-white font-bold transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-x-1 active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform duration-300" />
+                <span className="hidden sm:inline">Voltar</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push(`/engenharia/cadastrocontratos/${contractId}`)}
+                  className="group flex items-center gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-[#2f4982] hover:bg-[#263d69] text-white font-semibold transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-105"
+                >
+                  <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Editar</span>
+                </button>
+
+                <button className="p-2 sm:p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white transition-all duration-300 hover:shadow-xl hover:shadow-green-500/50 hover:scale-105">
+                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <main className="container mx-auto px-3 sm:px-6 py-6 sm:py-8 max-w-7xl">
+          {/* Title Section */}
+          <div className="text-center mb-6 sm:mb-10 animate-in fade-in slide-in-from-top duration-700">
+            <div className="inline-block px-2">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#2f4982] dark:text-[#ffffff] mb-3 animate-in zoom-in duration-500 break-words">
+                {contract.name || '(Sem título)'}
+              </h1>
+              <div className="h-1 bg-gradient-to-r from-lbr-primary via-secondary to-accent rounded-full animate-in slide-in-from-left duration-700" />
+            </div>
+            <br></br>
+            <div className="mt-4 inline-flex items-center gap-2 flex-wrap justify-center">
+              <span className="text-sm text-slate-700 dark:text-gray-300 font-medium">Status:</span>
+              <span
+                className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg ${
+                  contract.status === 'Ativo'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                    : contract.status === 'Pendente'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                    : 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                } animate-pulse`}
+              >
+                {contract.status}
+              </span>
+            </div>
+          </div>
+
+          {/* Setor & Contratante (Side by Side) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-10">
+            {/* Setor */}
+            <div className="group bg-gradient-to-br from-[#2f4982] to-blue-700 p-[2px] rounded-2xl hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-500 hover:scale-105 animate-in fade-in slide-in-from-left duration-700 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982] to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0" />
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 h-full flex items-center gap-3 sm:gap-4 relative z-10">
+                <div className="p-3 bg-gradient-to-br from-[#2f4982] to-blue-700 rounded-xl shadow-lg">
+                  <Briefcase className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-600 dark:text-gray-300 mb-1">Setor</h3>
+                  <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white break-words">{contract.sector || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contratante */}
+            <div className="group bg-gradient-to-br from-[#2f4982] to-blue-700 p-[2px] rounded-2xl hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-500 hover:scale-105 animate-in fade-in slide-in-from-right duration-700 delay-100 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982] to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0" />
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 h-full flex items-center gap-3 sm:gap-4 relative z-10">
+                <div className="p-3 bg-gradient-to-br from-[#2f4982] to-blue-700 rounded-xl shadow-lg">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-600 dark:text-gray-300 mb-1">Contratante</h3>
+                  <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white break-words">
+                    {organization?.name || '(Sem contratante)'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Escopo & Objeto */}
+          {(contract.scope || contract.object) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-10">
+              {contract.object && (
+                <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-5 sm:p-8 border border-white/20 dark:border-gray-700/20 shadow-xl hover:shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-left duration-700">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Target className="w-6 h-6 text-[#2f4982] dark:text-blue-400" />
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Objeto</h3>
+                  </div>
+                  <p className="text-slate-800 dark:text-gray-200 leading-relaxed font-medium">{contract.object}</p>
+                </div>
+              )}
+
+              {contract.scope && (
+                <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-8 border border-white/20 dark:border-gray-700/20 shadow-xl hover:shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-right duration-700">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Info className="w-6 h-6 text-[#2f4982] dark:text-purple-400" />
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Escopo</h3>
+                  </div>
+                  <p className="text-slate-800 dark:text-gray-200 leading-relaxed font-medium">{contract.scope}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mb-6 sm:mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 flex items-center gap-3">
+              <span className="w-2 h-2 bg-gradient-to-r from-lbr-primary to-secondary rounded-full animate-pulse" />
+              <span className="text-lg sm:text-3xl">Informações Detalhadas</span>
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              {sections.map((section, index) => (
+                <button
+                  key={section.id}
+                  onClick={() => setSelectedSection(selectedSection === section.id ? null : section.id)}
+                  className={`group relative overflow-hidden rounded-2xl p-4 sm:p-6 transition-all duration-500 transform hover:scale-105 border border-slate-100 dark:border-gray-700 ${
+                    selectedSection === section.id
+                      ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
+                      : 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl'
+                  } animate-in fade-in slide-in-from-bottom duration-700`}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Hover Overlay (User's request) */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982] to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none" />
+
+                  {/* Bottom Border Highlight (Sliding Animation) */}
+                  {selectedSection !== section.id && (
+                    <div className={`absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r ${section.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
+                  )}
+
+                  <div className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 text-center">
+                    <div className={`p-3 sm:p-4 rounded-2xl shadow-lg transition-all duration-500 bg-gradient-to-br ${section.gradient} text-white group-hover:scale-110`}>
+                      {section.icon}
+                    </div>
+                    <span className={`font-bold text-xs sm:text-sm uppercase tracking-wider ${
+                      selectedSection === section.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'
+                    }`}>
+                      {section.label}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Section Content */}
+          {selectedSection && (
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl p-5 sm:p-8 md:p-10 border border-white/20 dark:border-gray-700/20 shadow-2xl animate-in fade-in slide-in-from-bottom duration-500">
+              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-6 sm:mb-8 flex items-center gap-3">
+                {sections.find((s) => s.id === selectedSection)?.icon}
+                {sections.find((s) => s.id === selectedSection)?.label}
+              </h3>
+
+
+              {selectedSection === 'lamina' && (
+                <div className="space-y-4">
+                  {contract.lamina_url ? (
+                    <a
+                      href={contract.lamina_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-lbr-primary to-secondary hover:from-lbr-primary-hover hover:to-secondary-dark text-white rounded-xl font-semibold shadow-lg hover:shadow-2xl hover:shadow-lbr-primary/50 transition-all duration-300 hover:scale-105"
+                    >
+                      <FileText className="w-6 h-6" />
+                      <span>Abrir Lâmina do Contrato</span>
+                      <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </a>
+                  ) : (
+                    <p className="text-slate-700 dark:text-gray-300 text-center py-8 font-medium">Nenhuma lâmina disponível.</p>
+                  )}
+                </div>
+              )}
+
+              {selectedSection === 'cliente' && (
+                <div className="grid gap-6">
+                  {clienteParticipants.length > 0 ? (
+                    clienteParticipants.map((p, i) => (
+                      <div
+                        key={i}
+                        className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10"
+                      >
+                        <p className="text-xs font-bold text-secondary dark:text-secondary-light mb-2 uppercase tracking-wider">
+                          {prettyRole(p.role)}
+                        </p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white mb-2">{p.person.full_name}</p>
+                        <div className="flex flex-col gap-2 text-sm text-slate-700 dark:text-gray-300 font-medium">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">📧</span> {p.person.email || '-'}
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">📱</span> {p.person.phone || '-'}
+                          </span>
+                          {p.person.office && (
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg">🏢</span> {p.person.office}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-700 dark:text-gray-300 text-center py-8 font-medium">Nenhum contato do cliente cadastrado.</p>
+                  )}
+                </div>
+              )}
+
+              {selectedSection === 'equipe' && (
+                <div className="grid gap-6">
+                  {equipeParticipants.length > 0 ? (
+                    equipeParticipants.map((p, i) => (
+                      <div
+                        key={i}
+                        className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10"
+                      >
+                        <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wider">
+                          {prettyRole(p.role)}
+                        </p>
+                        <p className="text-xl font-bold text-slate-900 dark:text-white mb-2">{p.person.full_name}</p>
+                        <div className="flex flex-col gap-2 text-sm text-slate-700 dark:text-gray-300 font-medium">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">📧</span> {p.person.email || '-'}
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">📱</span> {p.person.phone || '-'}
+                          </span>
+                          {p.person.office && (
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg">🏢</span> {p.person.office}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-700 dark:text-gray-300 text-center py-8 font-medium">Nenhum membro de equipe cadastrado.</p>
+                  )}
+                </div>
+              )}
+
+              {selectedSection === 'localizacao' && (
+                <div className="space-y-6">
+                   <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-lbr-primary" />
+                        Localização Principal
+                      </h4>
+                      <p className="text-slate-700 dark:text-gray-300 text-lg">
+                        {contract.location || 'Não informada'}
+                      </p>
+                   </div>
+                   
+                   {/* Interactive Map */}
+                   {data.obras && data.obras.length > 0 && (
+                     <div className="space-y-6">
+                       <div>
+                         <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                           🗺️ Visualização dos Trechos
+                         </h4>
+                         <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                           Clique em um trecho no mapa para ver detalhes e adicionar anotações
+                         </p>
+                         <ObraMapViewer
+                           obras={data.obras}
+                           onObraClick={handleObraClick}
+                           selectedObraId={selectedObra?.id || null}
+                           nonConformities={nonConformities}
+                           onNonConformityClick={handleNonConformityClick}
+                         />
+                       </div>
+
+                       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-gray-700">
+                         <table className="w-full text-left border-collapse">
+                           <thead className="bg-slate-50 dark:bg-gray-900/50">
+                             <tr>
+                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">UF</th>
+                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Rodovia</th>
+                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Início</th>
+                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Fim</th>
+                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Extensão</th>
+                             </tr>
+                           </thead>
+                           <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
+                             {data.obras.map((obra: any) => (
+                               <tr 
+                                 key={obra.id} 
+                                 className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
+                                 onClick={() => handleObraClick(obra)}
+                               >
+                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.uf || '-'}</td>
+                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.nome || '-'}</td>
+                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_inicio}</td>
+                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_fim}</td>
+                                 <td className="py-4 px-6 text-green-600 dark:text-green-400 font-bold">
+                                   {(obra.km_fim - obra.km_inicio).toFixed(2)} km
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+                     </div>
+                   )}
+                </div>
+              )}
+
+              {selectedSection === 'medicoes' && (
+                <div className="animate-in fade-in slide-in-from-right duration-500">
+                  <MeasurementExplorer
+                    contractId={contractId}
+                    contractName={contract.name}
+                  />
+                </div>
+              )}
+
+              {selectedSection === 'produtos' && (
+                <div className="animate-in fade-in slide-in-from-right duration-500">
+                  <ProductExplorer
+                    contractId={contractId}
+                    contractName={contract.name}
+                  />
+                </div>
+              )}
+
+              {['software', 'dificuldades'].includes(selectedSection) && (
+                <div className="text-center py-12">
+                  <div className="inline-flex p-6 bg-slate-100 dark:bg-gray-700 rounded-full mb-4">
+                    {sections.find(s => s.id === selectedSection)?.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Em Breve</h3>
+                  <p className="text-slate-600 dark:text-gray-400">
+                    A seção de {sections.find(s => s.id === selectedSection)?.label.toLowerCase()} será implementada em breve.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Annotation Sidebar */}
+      <ObraAnnotationSidebar
+        obra={selectedObra}
+        isOpen={isSidebarOpen}
+        onClose={handleCloseSidebar}
+        clickCoords={clickCoords}
+        selectedNonConformityId={selectedNonConformityId}
+        onBack={() => setSelectedNonConformityId(null)}
+      />
+    </div>
+    </>
+  )
+}

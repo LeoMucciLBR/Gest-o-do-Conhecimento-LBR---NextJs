@@ -1,0 +1,243 @@
+'use client'
+
+import { useState } from 'react'
+import { LocationField } from '@/components/ui/LocationField'
+import type { LocationValue } from '@/components/ui/LocationField'
+import PersonSearch from '@/components/ui/PersonSearch'
+import { Trash2, UserPlus } from 'lucide-react'
+import FichaModal from '@/components/modals/FichaModal'
+
+export interface TeamMember {
+  id: string  // temporary UI ID
+  personId: string  // ficha ID
+  name: string
+  role: string  // COORDENADORA, ENGENHEIRO_RESPONSAVEL, OUTRO
+  email: string
+  phone: string
+}
+
+interface EquipeSectionProps {
+  formData: {
+    localizacaoEscritorioLbr: LocationValue
+    teamMembers: TeamMember[]
+  }
+  onTeamChange: (team: TeamMember[]) => void
+  onLocationChange: (value: LocationValue) => void
+}
+
+const ROLES = [
+  { value: 'COORDENADORA', label: 'Coordenadora' },
+  { value: 'ENGENHEIRO_RESPONSAVEL', label: 'Engenheiro Responsável' },
+  { value: 'GERENTE_PROJETO', label: 'Gerente de Projeto' },
+  { value: 'ANALISTA', label: 'Analista' },
+  { value: 'OUTRO', label: 'Outro' },
+]
+
+export default function EquipeSection({
+  formData,
+  onTeamChange,
+  onLocationChange,
+}: EquipeSectionProps) {
+  const [selectedPerson, setSelectedPerson] = useState<any>(null)
+  const [searchValue, setSearchValue] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleAddMember = (person?: any) => {
+    const personToAdd = person || selectedPerson
+    
+    if (!personToAdd) {
+      alert('Selecione uma pessoa da equipe')
+      return
+    }
+
+    // Check if already added
+    const exists = formData.teamMembers.find(m => m.personId === personToAdd.id)
+    if (exists) {
+      alert('Esta pessoa já foi adicionada à equipe')
+      // Reset
+      setSelectedPerson(null)
+      setSearchValue('')
+      return
+    }
+
+    // Auto-detect role from profession
+    let autoRole = 'OUTRO'
+    const profession = (personToAdd.profissao || '').toLowerCase()
+    if (profession.includes('coordenador')) {
+      autoRole = 'COORDENADORA'
+    } else if (profession.includes('engenheiro')) {
+      autoRole = 'ENGENHEIRO_RESPONSAVEL'
+    } else if (profession.includes('gerente')) {
+      autoRole = 'GERENTE_PROJETO'
+    } else if (profession.includes('analista')) {
+      autoRole = 'ANALISTA'
+    }
+
+    const newMember: TeamMember = {
+      id: `temp-${Date.now()}`,
+      personId: personToAdd.id,
+      name: personToAdd.full_name || personToAdd.nome,
+      role: autoRole,
+      email: personToAdd.email || '',
+      phone: personToAdd.celular || personToAdd.telefone || ''
+    }
+
+    onTeamChange([...formData.teamMembers, newMember])
+    
+    // Reset
+    setSelectedPerson(null)
+    setSearchValue('')
+  }
+
+  const handleRemoveMember = (id: string) => {
+    onTeamChange(formData.teamMembers.filter(m => m.id !== id))
+  }
+
+  const handlePersonSelect = (person: any) => {
+    setSelectedPerson(person)
+    setSearchValue(person.full_name || person.nome)
+    
+    // Auto-add when person is selected
+    setTimeout(() => {
+      handleAddMember(person)
+    }, 100)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && selectedPerson) {
+      e.preventDefault()
+      handleAddMember()
+    }
+  }
+
+  const handleModalSuccess = (data: any) => {
+    const person = {
+      id: data.id,
+      full_name: data.nome,
+      email: data.email,
+      celular: data.celular,
+      telefone: data.telefone,
+      profissao: data.profissao
+    }
+    handlePersonSelect(person)
+  }
+
+  const getRoleLabel = (role: string) => {
+    const roleObj = ROLES.find(r => r.value === role)
+    return roleObj?.label || role
+  }
+
+  return (
+    <div className="space-y-8">
+      <FichaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleModalSuccess}
+        mode="create"
+        defaultTipo="INTERNA"
+      />
+
+      {/* Localização Escritório LBR */}
+      <div className="bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20 rounded-2xl p-6 border-2 border-blue-100 dark:border-blue-900">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
+          <span className="w-2 h-2 bg-blue-600 rounded-full" />
+          Localização do Escritório LBR
+        </h3>
+
+        <LocationField
+          value={formData.localizacaoEscritorioLbr}
+          onChange={onLocationChange}
+          placeholder="Digite o endereço do escritório LBR"
+        />
+      </div>
+
+      {/* Adicionar Membros */}
+      <div className="bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20 rounded-2xl p-6 border-2 border-green-100 dark:border-green-900">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
+          <UserPlus className="w-5 h-5 text-green-600" />
+          Adicionar Membro da Equipe
+        </h3>
+
+
+        <div className="space-y-4" onKeyPress={handleKeyPress}>
+          <PersonSearch
+            label="Buscar Pessoa"
+            value={searchValue}
+            onChange={setSearchValue}
+            onSelect={handlePersonSelect}
+            onCreateNew={() => setIsModalOpen(true)}
+            placeholder="Digite nome ou email da pessoa (Enter para ver todos)"
+            tipo="INTERNA"
+            excludeIds={formData.teamMembers.map(m => m.personId)}
+          />
+
+          <button
+            type="button"
+            onClick={() => handleAddMember()}
+            className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-green-500/30 flex items-center justify-center gap-2"
+          >
+            <UserPlus className="w-5 h-5" />
+            Adicionar à Equipe
+          </button>
+        </div>
+      </div>
+
+      {/* Tabela de Membros */}
+      {formData.teamMembers.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-slate-200 dark:border-gray-700 shadow-lg">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-600 rounded-full" />
+            Membros da Equipe ({formData.teamMembers.length})
+          </h3>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-gray-700/50 border-b border-slate-200 dark:border-gray-600">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Nome</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Cargo</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Email</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-gray-300">Telefone</th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 dark:text-gray-300">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
+                {formData.teamMembers.map((member) => (
+                  <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">{member.name}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-gray-300">
+                      <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
+                        {getRoleLabel(member.role)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-gray-300">{member.email || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-gray-300">{member.phone || '-'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                        title="Remover"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Mensagem quando vazio */}
+      {formData.teamMembers.length === 0 && (
+        <div className="bg-slate-50 dark:bg-gray-800/50 rounded-2xl p-8 text-center border-2 border-dashed border-slate-200 dark:border-gray-700">
+          <UserPlus className="w-12 h-12 text-slate-400 dark:text-gray-500 mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-gray-400 font-medium">Nenhum membro adicionado ainda</p>
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">Use o campo acima para buscar e adicionar membros</p>
+        </div>
+      )}
+    </div>
+  )
+}

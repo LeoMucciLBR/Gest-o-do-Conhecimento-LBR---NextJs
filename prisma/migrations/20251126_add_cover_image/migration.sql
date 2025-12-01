@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "document_kind" ADD VALUE IF NOT EXISTS 'COVER_IMAGE';

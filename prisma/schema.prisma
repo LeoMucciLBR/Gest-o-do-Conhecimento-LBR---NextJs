@@ -1,0 +1,533 @@
+generator client {
+  provider   = "prisma-client-js"
+  output     = "../node_modules/.prisma/client"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model auth_identities {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String   @db.Uuid
+  provider         String
+  provider_user_id String
+  provider_email   String?  @db.Citext
+  raw_profile      Json?
+  linked_at        DateTime @default(now()) @db.Timestamptz(6)
+  users            users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, provider_user_id])
+}
+
+model email_verifications {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash Bytes     @unique
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model login_audit {
+  id              BigInt   @id @default(autoincrement())
+  user_id         String?  @db.Uuid
+  email_input     String?  @db.Citext
+  provider        String
+  success         Boolean
+  reason          String?
+  ip_address      String?  @db.Inet
+  user_agent      String?
+  location        String?  // City/State from IP - NEW
+  session_id      String?  // NEW
+  action_type     String?  // NEW: LOGIN, LOGOUT, PASSWORD_CHANGE
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  users           users?   @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model password_resets {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash Bytes     @unique
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model sessions {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String    @db.Uuid
+  token_hash    Bytes     @unique
+  user_agent    String?
+  ip_address    String?   @db.Inet
+  location      String? // City/State from IP
+  is_active     Boolean   @default(true)
+  last_activity DateTime  @default(now()) @db.Timestamptz(6)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at    DateTime  @db.Timestamptz(6)
+  revoked_at    DateTime? @db.Timestamptz(6)
+  users         users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, expires_at], map: "idx_sessions_user_expires")
+  @@index([is_active], map: "idx_sessions_active")
+}
+
+model user_passwords {
+  user_id             String    @id @db.Uuid
+  password_hash       String
+  password_updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  password_expires_at DateTime? // Optional: force password change after X days
+  must_change         Boolean   @default(false)
+  is_first_login      Boolean   @default(true) // Track if user needs to change temp password
+  users               users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_passwords")
+}
+
+model users {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String    @unique @db.Citext
+  name              String?
+  picture_url       String?
+  is_active         Boolean   @default(true)
+  role              String    @default("user")
+  email_verified_at DateTime? @db.Timestamptz(6)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @db.Timestamptz(6)
+  ficha_id          String?   @unique
+
+  // Security fields
+  failed_login_attempts Int       @default(0)
+  locked_until          DateTime? @db.Timestamptz(6)
+  last_login_at         DateTime? @db.Timestamptz(6)
+  last_login_ip         String?   @db.Inet
+
+  auth_identities       auth_identities[]
+  email_verifications   email_verifications[]
+  file_permissions      file_permissions[]
+  login_audit           login_audit[]
+  uploaded_files        measurement_files[]
+  created_folders       measurement_folders[]
+  non_conformity_photos non_conformity_photos[]
+  obra_annotations      obra_annotations[]
+  obra_non_conformities obra_non_conformities[]
+  obra_photos           obra_photos[]
+  password_resets       password_resets[]
+  product_files         product_files[]
+  product_folders       product_folders[]
+  sessions              sessions[]
+  user_passwords        user_passwords?
+  ficha                 fichas?                 @relation(fields: [ficha_id], references: [id])
+}
+
+model fichas {
+  id                    String       @id
+  nome                  String
+  email                 String?
+  telefone              String?
+  celular               String?
+  cpf                   String?
+  rg                    String?
+  data_nascimento       DateTime?
+  nacionalidade         String?
+  estado_civil          String?
+  genero                String?
+  endereco              String?
+  numero                String?
+  complemento           String?
+  bairro                String?
+  cidade                String?
+  estado                String?
+  cep                   String?
+  profissao             String?
+  especialidades        String?
+  registro_profissional String?
+  resumo_profissional   String?
+  idiomas               String?
+  formacoes             Json?        @default("[]")
+  experiencias          Json?        @default("[]")
+  certificados          Json?        @default("[]")
+  foto_perfil_url       String?
+  observacoes           String?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @default(now()) @updatedAt
+  tipo                  ficha_type   @default(INTERNA)
+  cargo_cliente         client_role?
+  users                 users?
+
+  @@index([email])
+  @@index([nome])
+  @@index([profissao])
+}
+
+model organizations {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  contracts  contracts[]
+  people     people[]
+}
+
+model people {
+  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?                 @db.Uuid
+  full_name       String
+  email           String?
+  phone           String?
+  office          String?
+  role            String?
+  created_at      DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
+  participants    contract_participants[]
+  organizations   organizations?          @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
+
+  @@index([organization_id], map: "idx_people_org")
+}
+
+model contracts {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String?                 @db.Uuid
+  name                String
+  sector              String?
+  object              String?
+  scope               String?
+  lote4               String?
+  lote5               String?
+  status              contract_status         @default(Ativo)
+  location            String?
+  created_at          DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
+  documents           contract_documents[]
+  participants        contract_participants[]
+  organization        organizations?          @relation(fields: [organization_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  file_permissions    file_permissions[]
+  measurement_files   measurement_files[]
+  measurement_folders measurement_folders[]
+  obras               obras[]
+  product_files       product_files[]
+  product_folders     product_folders[]
+
+  @@index([organization_id], map: "idx_contracts_org")
+  @@index([status], map: "idx_contracts_status")
+}
+
+model contract_documents {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id  String        @db.Uuid
+  kind         document_kind @default(LAMINA)
+  filename     String
+  content_type String?
+  storage_url  String?
+  created_at   DateTime      @default(now()) @db.Timestamptz(6)
+  contract     contracts     @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contract_id], map: "idx_docs_contract")
+}
+
+model contract_participants {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id String        @db.Uuid
+  person_id   String        @db.Uuid
+  role        contract_role
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+  contract    contracts     @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  person      people        @relation(fields: [person_id], references: [id], onUpdate: NoAction)
+
+  @@index([contract_id], map: "idx_participants_contract")
+}
+
+model rodovias {
+  id          Int                      @id @default(autoincrement())
+  nome        String                   @db.VarChar(100)
+  codigo      String                   @unique @db.VarChar(20)
+  uf          String?                  @db.VarChar(2)
+  km_inicial  Decimal                  @db.Decimal(10, 3)
+  km_final    Decimal                  @db.Decimal(10, 3)
+  geometria   Unsupported("geometry")?
+  created_at  DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?                @default(now()) @updatedAt @db.Timestamp(6)
+  extensao_km Decimal?                 @db.Decimal(10, 3)
+  tipo        String?                  @db.VarChar(20)
+  descricao   String?
+  obras       obras[]
+
+  @@unique([codigo, uf], map: "rodovias_codigo_uf_unique")
+  @@index([geometria], map: "idx_rodovias_geometria", type: Gist)
+}
+
+model obras {
+  id                Int                      @id @default(autoincrement())
+  rodovia_id        Int?
+  nome              String                   @db.VarChar(200)
+  descricao         String?
+  km_inicio         Decimal                  @db.Decimal(10, 3)
+  km_fim            Decimal                  @db.Decimal(10, 3)
+  status            String?                  @default("planejada") @db.VarChar(50)
+  data_inicio       DateTime?                @db.Date
+  data_fim_prevista DateTime?                @db.Date
+  geometria         Unsupported("geometry")?
+  created_at        DateTime?                @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?                @default(now()) @updatedAt @db.Timestamp(6)
+  contract_id       String?                  @db.Uuid
+  tipo_rodovia      tipo_rodovia             @default(ESTADUAL)
+  uf                String?                  @db.Char(2)
+  br_codigo         String?                  @db.VarChar(10)
+  annotations       obra_annotations[]
+  non_conformities  obra_non_conformities[]
+  photos            obra_photos[]
+  contract          contracts?               @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rodovia           rodovias?                @relation(fields: [rodovia_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contract_id], map: "idx_obras_contract_id")
+  @@index([geometria], map: "idx_obras_geometria", type: Gist)
+  @@index([rodovia_id], map: "idx_obras_rodovia")
+}
+
+model obra_annotations {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  obra_id    Int
+  user_id    String?   @db.Uuid
+  annotation String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  obra       obras     @relation(fields: [obra_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user       users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([obra_id], map: "idx_obra_annotations_obra")
+}
+
+model obra_photos {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  obra_id      Int
+  user_id      String?   @db.Uuid
+  filename     String    @db.VarChar(255)
+  content_type String?   @db.VarChar(100)
+  storage_url  String
+  caption      String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  obra         obras     @relation(fields: [obra_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user         users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([obra_id], map: "idx_obra_photos_obra")
+}
+
+model obra_non_conformities {
+  id          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  obra_id     Int
+  user_id     String?                 @db.Uuid
+  km          Decimal                 @db.Decimal(10, 3)
+  description String
+  severity    String?                 @default("BAIXA") @db.VarChar(50)
+  status      String?                 @default("ABERTA") @db.VarChar(50)
+  latitude    Decimal?                @db.Decimal(10, 8)
+  longitude   Decimal?                @db.Decimal(11, 8)
+  created_at  DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?               @default(now()) @updatedAt @db.Timestamptz(6)
+  photos      non_conformity_photos[]
+  obra        obras                   @relation(fields: [obra_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user        users?                  @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([obra_id], map: "idx_nc_obra")
+}
+
+model non_conformity_photos {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  non_conformity_id String                @db.Uuid
+  user_id           String?               @db.Uuid
+  filename          String                @db.VarChar(255)
+  content_type      String?               @db.VarChar(100)
+  storage_url       String
+  caption           String?
+  created_at        DateTime?             @default(now()) @db.Timestamptz(6)
+  non_conformity    obra_non_conformities @relation(fields: [non_conformity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user              users?                @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([non_conformity_id], map: "idx_nc_photos")
+}
+
+model measurement_folders {
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id      String                @db.Uuid
+  parent_folder_id String?               @db.Uuid
+  name             String                @db.VarChar(255)
+  description      String?
+  folder_order     Int?                  @default(0)
+  created_by       String?               @db.Uuid
+  created_at       DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?             @default(now()) @updatedAt @db.Timestamp(6)
+  files            measurement_files[]
+  contract         contracts             @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator          users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parent_folder    measurement_folders?  @relation("FolderHierarchy", fields: [parent_folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sub_folders      measurement_folders[] @relation("FolderHierarchy")
+
+  @@unique([contract_id, parent_folder_id, name], name: "unique_folder_name", map: "unique_folder_name")
+  @@index([contract_id], map: "idx_folders_contract")
+  @@index([parent_folder_id], map: "idx_folders_parent")
+  @@index([created_by], map: "idx_folders_created_by")
+}
+
+model measurement_files {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folder_id         String?              @db.Uuid
+  contract_id       String               @db.Uuid
+  filename          String               @db.VarChar(500)
+  original_filename String               @db.VarChar(500)
+  file_path         String
+  file_size         BigInt
+  mime_type         String?              @db.VarChar(255)
+  file_hash         String?              @db.VarChar(64)
+  file_type         String?              @db.VarChar(50)
+  tags              String[]
+  version           Int?                 @default(1)
+  is_latest         Boolean?             @default(true)
+  uploaded_by       String?              @db.Uuid
+  uploaded_at       DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?            @default(now()) @updatedAt @db.Timestamp(6)
+  metadata          Json?                @default("{}")
+  contract          contracts            @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  folder            measurement_folders? @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  uploader          users?               @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([folder_id], map: "idx_files_folder")
+  @@index([contract_id], map: "idx_files_contract")
+  @@index([file_type], map: "idx_files_type")
+  @@index([uploaded_by], map: "idx_files_uploaded_by")
+  @@index([tags], map: "idx_files_tags", type: Gin)
+}
+
+model file_permissions {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String?    @db.Uuid
+  contract_id String?    @db.Uuid
+  can_read    Boolean?   @default(true)
+  can_write   Boolean?   @default(false)
+  can_delete  Boolean?   @default(false)
+  created_at  DateTime?  @default(now()) @db.Timestamp(6)
+  contract    contracts? @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user        users?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, contract_id], name: "unique_user_contract_permission", map: "unique_user_contract_permission")
+  @@index([user_id], map: "idx_permissions_user")
+  @@index([contract_id], map: "idx_permissions_contract")
+}
+
+model product_folders {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id      String            @db.Uuid
+  parent_folder_id String?           @db.Uuid
+  name             String            @db.VarChar(255)
+  description      String?
+  folder_order     Int               @default(0)
+  created_by       String?           @db.Uuid
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
+  files            product_files[]
+  contract         contracts         @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product_folders_contract")
+  creator          users?            @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_product_folders_creator")
+  parent_folder    product_folders?  @relation("ProductFolderHierarchy", fields: [parent_folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product_folders_parent")
+  sub_folders      product_folders[] @relation("ProductFolderHierarchy")
+
+  @@unique([contract_id, parent_folder_id, name], name: "unique_product_folder_name", map: "unique_product_folder_name")
+  @@index([contract_id], map: "idx_product_folders_contract")
+  @@index([parent_folder_id], map: "idx_product_folders_parent")
+  @@index([created_by], map: "idx_product_folders_created_by")
+}
+
+model product_files {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folder_id         String?          @db.Uuid
+  contract_id       String           @db.Uuid
+  filename          String           @db.VarChar(500)
+  original_filename String           @db.VarChar(500)
+  file_path         String
+  file_size         BigInt
+  mime_type         String?          @db.VarChar(255)
+  file_hash         String?          @db.VarChar(64)
+  file_type         String?          @db.VarChar(50)
+  tags              String[]         @default([])
+  version           Int              @default(1)
+  is_latest         Boolean          @default(true)
+  uploaded_by       String?          @db.Uuid
+  uploaded_at       DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
+  metadata          Json             @default("{}") @db.Json
+  contract          contracts        @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product_files_contract")
+  folder            product_folders? @relation(fields: [folder_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product_files_folder")
+  uploader          users?           @relation(fields: [uploaded_by], references: [id], onUpdate: NoAction, map: "fk_product_files_uploader")
+
+  @@index([folder_id], map: "idx_product_files_folder")
+  @@index([contract_id], map: "idx_product_files_contract")
+  @@index([file_type], map: "idx_product_files_type")
+  @@index([uploaded_by], map: "idx_product_files_uploaded_by")
+}
+
+model segmento_rodovia {
+  id             Int                      @id @default(autoincrement())
+  rodovia_codigo String?                  @db.VarChar(20)
+  uf             String?                  @db.VarChar(2)
+  km_inicial     Decimal?                 @db.Decimal(10, 3)
+  km_final       Decimal?                 @db.Decimal(10, 3)
+  extensao_km    Decimal?                 @db.Decimal(10, 3)
+  local_inicio   String?
+  local_fim      String?
+  tipo           String?                  @db.VarChar(20)
+  geom           Unsupported("geometry")?
+
+  @@unique([rodovia_codigo, uf, km_inicial, km_final], map: "segmento_rodovia_unico")
+  @@unique([rodovia_codigo, uf, km_inicial, km_final], map: "trecho_unico")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+enum ficha_type {
+  INTERNA
+  CLIENTE
+}
+
+enum client_role {
+  GESTOR_AREA
+  GERENTE_ENGENHARIA
+}
+
+enum contract_role {
+  GESTOR_AREA
+  GERENTE_ENGENHARIA
+  COORDENADORA
+  ENGENHEIRO_RESPONSAVEL
+  GERENTE_PROJETO
+  ANALISTA
+  OUTRO
+}
+
+enum contract_status {
+  Ativo
+  Inativo
+  Pendente
+}
+
+enum document_kind {
+  LAMINA
+  OUTRO
+  COVER_IMAGE
+}
+
+enum tipo_rodovia {
+  FEDERAL
+  ESTADUAL
+}
