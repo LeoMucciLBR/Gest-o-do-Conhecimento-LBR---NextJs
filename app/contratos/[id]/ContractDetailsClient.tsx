@@ -21,6 +21,11 @@ import {
   Code,
   User,
   AlertCircle,
+  LayoutDashboard,
+  DollarSign,
+  Calendar,
+  ArrowRight,
+  List,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api/api'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
@@ -40,6 +45,10 @@ type Contract = {
   location: string | null
   lamina_url: string | null
   image_url: string | null
+  contract_value: string | null
+  start_date: string | null
+  end_date: string | null
+  characteristics: string | null
 }
 
 type Organization = {
@@ -233,6 +242,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   )
 
   const sections = [
+
     { id: 'lamina', label: 'LÂMINA', icon: <FileText className="w-6 h-6" />, gradient: 'from-blue-500 to-cyan-500' },
     { id: 'localizacao', label: 'LOCALIZAÇÃO', icon: <MapPin className="w-6 h-6" />, gradient: 'from-amber-500 to-orange-500' },
     { id: 'medicoes', label: 'MEDIÇÕES', icon: <Ruler className="w-6 h-6" />, gradient: 'from-violet-500 to-purple-500' },
@@ -362,11 +372,63 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                     <Info className="w-6 h-6 text-[#2f4982] dark:text-purple-400" />
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Escopo</h3>
                   </div>
-                  <p className="text-slate-800 dark:text-gray-200 leading-relaxed font-medium">{contract.scope}</p>
+                  <div 
+                    className="text-slate-800 dark:text-gray-200 leading-relaxed font-medium prose dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: contract.scope || '' }}
+                  />
                 </div>
               )}
             </div>
           )}
+          {/* Visão Geral (Valor, Prazos, Características) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 sm:mb-10 animate-in fade-in slide-in-from-bottom duration-700 delay-200">
+            {/* Valor do Contrato */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <DollarSign className="w-24 h-24 text-green-500" />
+              </div>
+              <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Valor do Contrato</h4>
+              <p className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
+                {contract.contract_value || 'Não informado'}
+              </p>
+            </div>
+
+            {/* Período */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Calendar className="w-24 h-24 text-blue-500" />
+              </div>
+              <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-4">Período de Vigência</h4>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mb-1">Início</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">
+                    {contract.start_date ? new Date(contract.start_date).toLocaleDateString('pt-BR') : '-'}
+                  </p>
+                </div>
+                <ArrowRight className="w-5 h-5 text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mb-1">Término</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">
+                    {contract.end_date ? new Date(contract.end_date).toLocaleDateString('pt-BR') : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Características */}
+            <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300">
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <List className="w-5 h-5 text-purple-500" />
+                Características e Observações
+              </h4>
+              <div 
+                className="prose dark:prose-invert max-w-none text-slate-700 dark:text-gray-300"
+                dangerouslySetInnerHTML={{ __html: contract.characteristics || 'Nenhuma característica informada.' }}
+              />
+            </div>
+          </div>
+
           <div className="mb-6 sm:mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 flex items-center gap-3">
               <span className="w-2 h-2 bg-gradient-to-r from-lbr-primary to-secondary rounded-full animate-pulse" />
@@ -414,6 +476,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 {sections.find((s) => s.id === selectedSection)?.icon}
                 {sections.find((s) => s.id === selectedSection)?.label}
               </h3>
+
+
 
 
               {selectedSection === 'lamina' && (

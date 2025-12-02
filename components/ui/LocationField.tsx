@@ -33,7 +33,6 @@ export function LocationField({
   
   // Refs for Google Maps objects to persist across renders without causing re-renders
   const autocompleteInstanceRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
   const listenersRef = useRef<google.maps.MapsEventListener[]>([])
 
   const { isLoaded, loadError } = useGoogleMaps()
@@ -54,15 +53,13 @@ export function LocationField({
       google.maps.event.clearInstanceListeners(autocompleteInstanceRef.current)
     }
 
-    // Create Session Token for cost optimization
-    sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
-
     // Initialize Autocomplete
+    // Note: The Widget automatically handles Session Tokens for cost optimization.
+    // We do NOT need to create them manually.
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       componentRestrictions: { country: 'br' },
       fields: ['geometry', 'formatted_address', 'place_id'],
       types: ['geocode'],
-      sessionToken: sessionTokenRef.current
     })
 
     autocompleteInstanceRef.current = autocomplete
@@ -84,10 +81,6 @@ export function LocationField({
       
       onChange(newValue)
       setInputValue(newValue.texto)
-
-      // Refresh Session Token after selection (required by Google)
-      sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
-      autocomplete.setOptions({ sessionToken: sessionTokenRef.current })
       
       // Close dropdown visual helper
       setTimeout(() => {
@@ -106,7 +99,6 @@ export function LocationField({
         google.maps.event.clearInstanceListeners(autocompleteInstanceRef.current)
       }
       // Remove DOM elements created by Google Maps (pac-container)
-      // Note: Google doesn't provide a clean destroy method, but clearing listeners helps
       const pacContainers = document.querySelectorAll('.pac-container')
       pacContainers.forEach((container) => {
         container.remove()

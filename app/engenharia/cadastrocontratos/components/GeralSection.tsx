@@ -5,6 +5,7 @@ import InputWithValidation from './InputWithValidation'
 import { LocationField } from '@/components/ui/LocationField'
 import type { LocationValue } from '@/components/ui/LocationField'
 import { FileText,  Image as ImageIcon, X } from 'lucide-react'
+import RichTextEditor from '@/components/ui/RichTextEditor'
 
 interface GeralSectionProps {
   formData: {
@@ -146,27 +147,21 @@ export default function GeralSection({
           </div>
 
           <div className="md:col-span-2">
-            <InputWithValidation
+            <RichTextEditor
               label="Escopo do Contrato"
-              name="escopoContrato"
               value={formData.escopoContrato}
-              onChange={onChange}
+              onChange={(value) => onChange({ target: { name: 'escopoContrato', value } } as any)}
               placeholder="Descreva o escopo completo"
-              as="textarea"
-              rows={4}
               required
             />
           </div>
 
           <div className="md:col-span-2">
-            <InputWithValidation
+            <RichTextEditor
               label="Características"
-              name="caracteristicas"
               value={formData.caracteristicas}
-              onChange={onChange}
+              onChange={(value) => onChange({ target: { name: 'caracteristicas', value } } as any)}
               placeholder="Descreva as características principais do contrato"
-              as="textarea"
-              rows={4}
             />
           </div>
 
