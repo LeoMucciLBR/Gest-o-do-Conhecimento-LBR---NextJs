@@ -32,9 +32,6 @@ export default function AnimatedBackground() {
     // Círculos de "medida" ou "foco"
     { type: 'circle', top: '20%', left: '15%', size: 120, delay: 0 },
     { type: 'circle', top: '70%', left: '80%', size: 180, delay: 2 },
-    // Linhas de construção
-    { type: 'line', top: '40%', left: '0%', width: '100%', rotate: 0, delay: 1 },
-    { type: 'line', top: '0%', left: '30%', width: '100%', rotate: 90, delay: 3 },
   ]
 
   // Definição dos caminhos das rodovias para formar uma "Malha Rodoviária" (Road Network)

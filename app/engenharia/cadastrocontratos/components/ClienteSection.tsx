@@ -2,14 +2,11 @@
 
 import { useState } from 'react'
 import InputWithValidation from './InputWithValidation'
-import { LocationField } from '@/components/ui/LocationField'
-import type { LocationValue } from '@/components/ui/LocationField'
 import PersonSearch from '@/components/ui/PersonSearch'
 import FichaModal from '@/components/modals/FichaModal'
 
 interface ClienteSectionProps {
   formData: {
-    localizacaoEscritorioCliente: LocationValue
     gestorArea: string
     emailGestor: string
     telefoneGestor: string
@@ -18,13 +15,11 @@ interface ClienteSectionProps {
     telefoneGerente: string
   }
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
-  onLocationChange: (value: LocationValue) => void
 }
 
 export default function ClienteSection({
   formData,
   onChange,
-  onLocationChange,
 }: ClienteSectionProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [activeField, setActiveField] = useState<'gestor' | 'gerente' | null>(null)
@@ -76,20 +71,6 @@ export default function ClienteSection({
         mode="create"
         defaultTipo="CLIENTE"
       />
-
-      {/* Localização Escritório Cliente */}
-      <div className="bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20 rounded-2xl p-6 border-2 border-blue-100 dark:border-blue-900">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-          <span className="w-2 h-2 bg-blue-600 rounded-full" />
-          Localização do Escritório Cliente
-        </h3>
-
-        <LocationField
-          value={formData.localizacaoEscritorioCliente}
-          onChange={onLocationChange}
-          placeholder="Digite o endereço do escritório do cliente"
-        />
-      </div>
 
       {/* Gestor de Área */}
       <div className="bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-950/20 rounded-2xl p-6 border-2 border-emerald-100 dark:border-emerald-900">

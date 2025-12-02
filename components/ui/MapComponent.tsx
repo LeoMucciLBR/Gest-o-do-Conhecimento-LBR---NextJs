@@ -1,63 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-
-// Fix for default marker icon
-const markerIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
-
-interface MarkerDraggableProps {
-  lat: number
-  lng: number
-  onChangePosition: (lat: number, lng: number) => void
-}
-
-function MarkerDraggable({ lat, lng, onChangePosition }: MarkerDraggableProps) {
-  const [position, setPosition] = useState<L.LatLngExpression>([lat, lng])
-
-  useMapEvents({
-    click(e) {
-      setPosition(e.latlng)
-      onChangePosition(e.latlng.lat, e.latlng.lng)
-    },
-  })
-
-  return (
-    <Marker
-      draggable
-      position={position}
-      icon={markerIcon}
-      eventHandlers={{
-        dragend(e) {
-          const marker = e.target as L.Marker
-          const pos = marker.getLatLng()
-          setPosition(pos)
-          onChangePosition(pos.lat, pos.lng)
-        },
-      }}
-    />
-  )
-}
-
-function FitBounds({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap()
-
-  useEffect(() => {
-    map.setView([lat, lng], 14)
-  }, [map, lat, lng])
-
-  return null
-}
+import { useCallback, useState } from 'react'
+import { GoogleMap, Marker } from '@react-google-maps/api'
+import { useGoogleMaps } from '@/hooks/useGoogleMaps'
+import { Loader2 } from 'lucide-react'
 
 interface MapComponentProps {
   lat: number
@@ -65,26 +11,105 @@ interface MapComponentProps {
   onPositionChange: (lat: number, lng: number) => void
 }
 
+const mapContainerStyle = {
+  width: '100%',
+  height: '300px',
+}
+
+const mapOptions: google.maps.MapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+  styles: [
+    {
+      featureType: 'poi',
+      elementType: 'labels',
+      stylers: [{ visibility: 'on' }],
+    },
+  ],
+}
+
 export default function MapComponent({
   lat,
   lng,
   onPositionChange,
 }: MapComponentProps) {
-  const center: [number, number] = [lat, lng]
+  const { isLoaded } = useGoogleMaps()
+  const [markerPosition, setMarkerPosition] = useState({ lat, lng })
+  const [map, setMap] = useState<google.maps.Map | null>(null)
+
+  const center = { lat, lng }
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map)
+  }, [])
+
+  const onUnmount = useCallback(() => {
+    setMap(null)
+  }, [])
+
+  // Handle marker drag
+  const onMarkerDragEnd = useCallback(
+    (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        const newLat = e.latLng.lat()
+        const newLng = e.latLng.lng()
+        setMarkerPosition({ lat: newLat, lng: newLng })
+        onPositionChange(newLat, newLng)
+      }
+    },
+    [onPositionChange]
+  )
+
+  // Handle map click to move marker
+  const onMapClick = useCallback(
+    (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        const newLat = e.latLng.lat()
+        const newLng = e.latLng.lng()
+        setMarkerPosition({ lat: newLat, lng: newLng })
+        onPositionChange(newLat, newLng)
+      }
+    },
+    [onPositionChange]
+  )
+
+  // Update marker position when props change
+  useState(() => {
+    setMarkerPosition({ lat, lng })
+  })
+
+  if (!isLoaded) {
+    return (
+      <div className="h-[300px] bg-slate-100 dark:bg-gray-800 rounded-xl flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          <span className="text-sm text-slate-600 dark:text-gray-400">
+            Carregando mapa...
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <MapContainer
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
       center={center}
-      zoom={14}
-      style={{ height: '300px', width: '100%' }}
-      scrollWheelZoom={true}
+      zoom={15}
+      onLoad={onLoad}
+      onUnmount={onUnmount}
+      onClick={onMapClick}
+      options={mapOptions}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      <Marker
+        position={markerPosition}
+        draggable={true}
+        onDragEnd={onMarkerDragEnd}
+        animation={google.maps.Animation.DROP}
       />
-      <FitBounds lat={lat} lng={lng} />
-      <MarkerDraggable lat={lat} lng={lng} onChangePosition={onPositionChange} />
-    </MapContainer>
+    </GoogleMap>
   )
 }

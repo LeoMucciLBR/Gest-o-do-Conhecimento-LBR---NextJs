@@ -13,14 +13,14 @@ interface GeralSectionProps {
     setor: string
     objetoContrato: string
     escopoContrato: string
-    lote4: string
-    lote5: string
+    caracteristicas: string
+    dataInicio: string
+    dataFim: string
+    valorContrato: string
     lamina: File | null
     imagemContrato: File | null
-    localizacao: LocationValue
   }
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
-  onLocationChange: (value: LocationValue) => void
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile: () => void
@@ -32,7 +32,6 @@ interface GeralSectionProps {
 export default function GeralSection({
   formData,
   onChange,
-  onLocationChange,
   onFileChange,
   onImageChange,
   onRemoveFile,
@@ -159,38 +158,49 @@ export default function GeralSection({
             />
           </div>
 
+          <div className="md:col-span-2">
+            <InputWithValidation
+              label="Características"
+              name="caracteristicas"
+              value={formData.caracteristicas}
+              onChange={onChange}
+              placeholder="Descreva as características principais do contrato"
+              as="textarea"
+              rows={4}
+            />
+          </div>
+
           <InputWithValidation
-            label="Lote 4"
-            name="lote4"
-            value={formData.lote4}
+            label="Data de Início"
+            name="dataInicio"
+            type="date"
+            value={formData.dataInicio}
             onChange={onChange}
-            placeholder="Informação do Lote 4"
+            placeholder="dd/mm/aaaa"
+            required
           />
 
           <InputWithValidation
-            label="Lote 5"
-            name="lote5"
-            value={formData.lote5}
+            label="Data de Término"
+            name="dataFim"
+            type="date"
+            value={formData.dataFim}
             onChange={onChange}
-            placeholder="Informação do Lote 5"
+            placeholder="dd/mm/aaaa"
+            required
           />
+
+          <div className="md:col-span-2">
+            <InputWithValidation
+              label="Valor do Contrato"
+              name="valorContrato"
+              type="currency"
+              value={formData.valorContrato}
+              onChange={onChange}
+              placeholder="R$ 0,00"
+            />
+          </div>
         </div>
-      </div>
-
-      {/* Localização */}
-      <div className="bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20 rounded-2xl p-6 border-2 border-green-100 dark:border-green-900 shadow-sm hover:shadow-md transition-shadow">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse" />
-          Localização do Projeto
-        </h3>
-
-        <LocationField
-          value={formData.localizacao}
-          onChange={onLocationChange}
-          placeholder="Digite o endereço ou localização do projeto"
-          label="Endereço"
-          required
-        />
       </div>
 
       {/* Upload de Lâmina (PDF) */}

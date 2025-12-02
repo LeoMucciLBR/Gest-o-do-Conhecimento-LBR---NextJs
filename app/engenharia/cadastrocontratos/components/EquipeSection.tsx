@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { LocationField } from '@/components/ui/LocationField'
-import type { LocationValue } from '@/components/ui/LocationField'
 import PersonSearch from '@/components/ui/PersonSearch'
 import { Trash2, UserPlus } from 'lucide-react'
 import FichaModal from '@/components/modals/FichaModal'
@@ -18,11 +16,9 @@ export interface TeamMember {
 
 interface EquipeSectionProps {
   formData: {
-    localizacaoEscritorioLbr: LocationValue
     teamMembers: TeamMember[]
   }
   onTeamChange: (team: TeamMember[]) => void
-  onLocationChange: (value: LocationValue) => void
 }
 
 const ROLES = [
@@ -36,7 +32,6 @@ const ROLES = [
 export default function EquipeSection({
   formData,
   onTeamChange,
-  onLocationChange,
 }: EquipeSectionProps) {
   const [selectedPerson, setSelectedPerson] = useState<any>(null)
   const [searchValue, setSearchValue] = useState('')
@@ -137,27 +132,12 @@ export default function EquipeSection({
         defaultTipo="INTERNA"
       />
 
-      {/* Localização Escritório LBR */}
-      <div className="bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20 rounded-2xl p-6 border-2 border-blue-100 dark:border-blue-900">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-          <span className="w-2 h-2 bg-blue-600 rounded-full" />
-          Localização do Escritório LBR
-        </h3>
-
-        <LocationField
-          value={formData.localizacaoEscritorioLbr}
-          onChange={onLocationChange}
-          placeholder="Digite o endereço do escritório LBR"
-        />
-      </div>
-
       {/* Adicionar Membros */}
       <div className="bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20 rounded-2xl p-6 border-2 border-green-100 dark:border-green-900">
         <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
           <UserPlus className="w-5 h-5 text-green-600" />
           Adicionar Membro da Equipe
         </h3>
-
 
         <div className="space-y-4" onKeyPress={handleKeyPress}>
           <PersonSearch

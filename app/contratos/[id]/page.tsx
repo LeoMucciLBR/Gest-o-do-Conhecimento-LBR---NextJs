@@ -1,4 +1,3 @@
-import './leaflet.css'
 import ContractDetailsClient from './ContractDetailsClient'
 
 export default async function ContractDetailsPage({ 

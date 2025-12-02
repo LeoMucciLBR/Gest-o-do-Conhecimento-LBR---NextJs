@@ -10,10 +10,11 @@ import type { LocationValue } from '@/components/ui/LocationField'
 import GeralSection from './components/GeralSection'
 import ClienteSection from './components/ClienteSection'
 import EquipeSection, { type TeamMember } from './components/EquipeSection'
+import LocalizacaoSection from './components/LocalizacaoSection'
 import ObrasSection, { type ObraRow, type RodoviaOption, type ObraTipo } from './components/ObrasSection'
 import { emptyLocation } from './lib/validation'
 
-type TabType = 'geral' | 'cliente' | 'equipe' | 'obras'
+type TabType = 'geral' | 'localizacao' | 'cliente' | 'equipe' | 'obras'
 
 interface FormData {
   nomeContrato: string
@@ -21,8 +22,10 @@ interface FormData {
   setor: string
   objetoContrato: string
   escopoContrato: string
-  lote4: string
-  lote5: string
+  caracteristicas: string
+  dataInicio: string
+  dataFim: string
+  valorContrato: string
   lamina: File | null
   imagemContrato: File | null
   localizacao: LocationValue
@@ -119,8 +122,10 @@ export default function CadastroContrato() {
     setor: '',
     objetoContrato: '',
     escopoContrato: '',
-    lote4: '',
-    lote5: '',
+    caracteristicas: '',
+    dataInicio: '',
+    dataFim: '',
+    valorContrato: '',
     lamina: null,
     imagemContrato: null,
     localizacao: emptyLocation,
@@ -243,8 +248,10 @@ export default function CadastroContrato() {
           setor: contract.sector || '',
           objetoContrato: contract.object || '',
           escopoContrato: contract.scope || '',
-          lote4: contract.lote4 || '',
-          lote5: contract.lote5 || '',
+          caracteristicas: contract.caracteristicas || '',
+          dataInicio: contract.data_inicio || '',
+          dataFim: contract.data_fim || '',
+          valorContrato: contract.valor || '',
           lamina: null,
           imagemContrato: null,
           localizacao: { texto: contract.location || '', lat: null, lng: null, placeId: null },
@@ -394,8 +401,10 @@ export default function CadastroContrato() {
         sector: formData.setor || null,
         object: formData.objetoContrato,
         scope: formData.escopoContrato,
-        lote4: formData.lote4 || null,
-        lote5: formData.lote5 || null,
+        caracteristicas: formData.caracteristicas || null,
+        dataInicio: formData.dataInicio || null,
+        dataFim: formData.dataFim || null,
+        valor: formData.valorContrato || null,
         status: 'Ativo',
         location: formData.localizacao?.texto || null,
         organization: { name: formData.contratante },
@@ -428,6 +437,7 @@ export default function CadastroContrato() {
 
   const tabs = [
     { id: 'geral' as TabType, label: 'Geral', icon: '📋' },
+    { id: 'localizacao' as TabType, label: 'Localização', icon: '📍' },
     { id: 'cliente' as TabType, label: 'Cliente', icon: '👤' },
     { id: 'equipe' as TabType, label: 'Equipe', icon: '👥' },
     { id: 'obras' as TabType, label: 'Obras', icon: '🛣️' },
@@ -551,7 +561,6 @@ export default function CadastroContrato() {
                   <GeralSection
                     formData={formData}
                     onChange={handleInputChange}
-                    onLocationChange={(value) => setFormData((prev) => ({ ...prev, localizacao: value }))}
                     onFileChange={handleFileChange}
                     onImageChange={handleImageChange}
                     onRemoveFile={handleRemoveFile}
@@ -562,12 +571,22 @@ export default function CadastroContrato() {
                 </div>
               )}
 
+              {activeTab === 'localizacao' && (
+                <div className="animate-in fade-in slide-in-from-right duration-500">
+                  <LocalizacaoSection
+                    formData={formData}
+                    onLocalizacaoChange={(value) => setFormData((prev) => ({ ...prev, localizacao: value }))}
+                    onLocalizacaoClienteChange={(value) => setFormData((prev) => ({ ...prev, localizacaoEscritorioCliente: value }))}
+                    onLocalizacaoLbrChange={(value) => setFormData((prev) => ({ ...prev, localizacaoEscritorioLbr: value }))}
+                  />
+                </div>
+              )}
+
               {activeTab === 'cliente' && (
                 <div className="animate-in fade-in slide-in-from-right duration-500">
                   <ClienteSection
                     formData={formData}
                     onChange={handleInputChange}
-                    onLocationChange={(value) => setFormData((prev) => ({ ...prev, localizacaoEscritorioCliente: value }))}
                   />
                 </div>
               )}
@@ -577,7 +596,6 @@ export default function CadastroContrato() {
                   <EquipeSection
                     formData={formData}
                     onTeamChange={(team) => setFormData((prev) => ({ ...prev, teamMembers: team }))}
-                    onLocationChange={(value) => setFormData((prev) => ({ ...prev, localizacaoEscritorioLbr: value }))}
                   />
                 </div>
               )}

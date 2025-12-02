@@ -50,6 +50,25 @@ export default function InputWithValidation({
       .slice(0, 15)
   }
 
+  const formatCurrency = (value: string): string => {
+    // Remove tudo exceto números
+    const clean = value.replace(/\D/g, '')
+    
+    // Se não houver números, retorna vazio
+    if (!clean) return ''
+    
+    // Converte para número e divide por 100 para considerar os centavos
+    const number = parseFloat(clean) / 100
+    
+    // Formata como moeda brasileira
+    return number.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+
   let isValid = false
   let errorMessage = error || ''
 
@@ -60,6 +79,11 @@ export default function InputWithValidation({
     } else if (type === 'tel') {
       isValid = validatePhone(value)
       if (!isValid) errorMessage = 'Telefone inválido (use 10 ou 11 dígitos)'
+    } else if (type === 'currency') {
+      // Para moeda, considera válido se tiver algum valor numérico
+      const clean = value.replace(/\D/g, '')
+      isValid = clean.length > 0
+      if (!isValid) errorMessage = 'Valor inválido'
     } else {
       isValid = value.trim().length > 0
     }
@@ -74,6 +98,9 @@ export default function InputWithValidation({
   ) => {
     if (type === 'tel') {
       const formatted = formatPhone(e.target.value)
+      e.target.value = formatted
+    } else if (type === 'currency') {
+      const formatted = formatCurrency(e.target.value)
       e.target.value = formatted
     }
     onChange(e)
