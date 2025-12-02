@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         emailInput: email,
         success: false,
         reason: 'USER_OR_PASS',
-        ip: request.ip,
+        ip: request.headers.get('x-forwarded-for') || (request as any).ip || undefined,
         userAgent: request.headers.get('user-agent') ?? undefined,
         provider: 'local',
       })
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         emailInput: email,
         success: true,
-        ip: request.ip,
+        ip: request.headers.get('x-forwarded-for') || (request as any).ip || undefined,
         userAgent: request.headers.get('user-agent') ?? undefined,
         provider: 'local',
       })
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Login normal - criar sessão
     const { token: sessionToken } = await createSession({
       userId: user.id,
-      ipAddress: request.ip,
+      ipAddress: request.headers.get('x-forwarded-for') || (request as any).ip || undefined,
       userAgent: request.headers.get('user-agent') ?? undefined
     })
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       emailInput: email,
       success: true,
-      ip: request.ip,
+      ip: request.headers.get('x-forwarded-for') || (request as any).ip || undefined,
       userAgent: request.headers.get('user-agent') ?? undefined,
       provider: 'local',
     })

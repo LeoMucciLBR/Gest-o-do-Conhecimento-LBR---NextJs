@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Registrar log
-    const ipAddress = request.ip || request.headers.get('x-forwarded-for') || undefined
+    const ipAddress = (request as any).ip || request.headers.get('x-forwarded-for') || undefined
     const userAgent = request.headers.get('user-agent') || undefined
 
     await logLogin({

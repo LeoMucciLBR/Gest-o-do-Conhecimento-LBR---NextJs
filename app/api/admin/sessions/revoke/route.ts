@@ -22,10 +22,9 @@ export async function POST(request: NextRequest) {
     if (userId) {
       await auditLogin({
         userId,
-        action: 'FORCED_LOGOUT',
         success: true,
-        reason: reason || 'Admin revoked session',
-        ip: request.ip,
+        reason: reason || 'Admin revoked session (FORCED_LOGOUT)',
+        ip: request.headers.get('x-forwarded-for') || (request as any).ip || undefined,
         userAgent: request.headers.get('user-agent') || undefined,
         provider: 'local'
       })
