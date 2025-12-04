@@ -12,9 +12,10 @@ interface FichaModalProps {
   mode: 'create' | 'edit' | 'view'
   initialData?: any
   defaultTipo?: 'INTERNA' | 'CLIENTE' // Pre-set tipo for modal context
+  defaultCargo?: 'GESTOR_AREA' | 'GERENTE_ENGENHARIA' // Pre-set cargo_cliente for CLIENTE tipo
 }
 
-export default function FichaModal({ isOpen, onClose, onSuccess, mode, initialData, defaultTipo }: FichaModalProps) {
+export default function FichaModal({ isOpen, onClose, onSuccess, mode, initialData, defaultTipo, defaultCargo }: FichaModalProps) {
   const [mounted, setMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
 
@@ -78,7 +79,7 @@ export default function FichaModal({ isOpen, onClose, onSuccess, mode, initialDa
         </button>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <FichaForm onSave={handleSave} mode={mode} initialData={initialData} isModal={true} defaultTipo={defaultTipo} />
+          <FichaForm onSave={handleSave} mode={mode} initialData={initialData} isModal={true} defaultTipo={defaultTipo} defaultCargo={defaultCargo} />
         </div>
       </div>
     </div>,

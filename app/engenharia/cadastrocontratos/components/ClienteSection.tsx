@@ -103,7 +103,7 @@ export default function ClienteSection({
               onCreateNew={() => openModal('gestor')}
               placeholder="Busque por nome..."
               tipo="CLIENTE"
-              cargo="GESTOR_AREA"
+              role="GESTOR_AREA"
             />
 
             <div>
@@ -154,7 +154,7 @@ export default function ClienteSection({
               onCreateNew={() => openModal('gerente')}
               placeholder="Busque por nome..."
               tipo="CLIENTE"
-              cargo="GERENTE_ENGENHARIA"
+              role="GERENTE_ENGENHARIA"
             />
 
             <div>

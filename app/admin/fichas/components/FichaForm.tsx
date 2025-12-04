@@ -54,6 +54,7 @@ interface FichaFormProps {
   initialData?: any
   isModal?: boolean
   defaultTipo?: 'INTERNA' | 'CLIENTE' // Pre-set tipo and hide selector
+  defaultCargo?: 'GESTOR_AREA' | 'GERENTE_ENGENHARIA' // Pre-set cargo_cliente for CLIENTE tipo
 }
 
 // Define components outside to prevent recreation on every render
@@ -133,7 +134,7 @@ const TextAreaField = ({ label, name, placeholder, value, onChange, disabled, ro
   </div>
 )
 
-export default function FichaForm({ onSave, mode, initialData, isModal = false, defaultTipo }: FichaFormProps) {
+export default function FichaForm({ onSave, mode, initialData, isModal = false, defaultTipo, defaultCargo }: FichaFormProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('pessoal')
   const [saving, setSaving] = useState(false)
@@ -146,7 +147,7 @@ export default function FichaForm({ onSave, mode, initialData, isModal = false, 
 
   const [formData, setFormData] = useState({
     tipo: defaultTipo || initialData?.tipo || 'INTERNA',
-    cargo_cliente: initialData?.cargo_cliente || '',
+    cargo_cliente: defaultCargo || initialData?.cargo_cliente || '',
     nome: initialData?.nome || '',
     cpf: initialData?.cpf || '',
     rg: initialData?.rg || '',
