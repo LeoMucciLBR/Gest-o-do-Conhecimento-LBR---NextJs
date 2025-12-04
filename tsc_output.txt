@@ -1,0 +1,10 @@
+﻿app/api/contracts/route.ts(178,39): error TS2322: Type '{ contract_id: string; rodovia_id: number; nome: string | null; descricao: string; km_inicio: Decimal; km_fim: Decimal; status: string; }[]' is not assignable to type 'obrasCreateManyInput | obrasCreateManyInput[]'.
+  Type '{ contract_id: string; rodovia_id: number; nome: string | null; descricao: string; km_inicio: Decimal; km_fim: Decimal; status: string; }[]' is not assignable to type 'obrasCreateManyInput[]'.
+    Type '{ contract_id: string; rodovia_id: number; nome: string | null; descricao: string; km_inicio: Prisma.Decimal; km_fim: Prisma.Decimal; status: string; }' is not assignable to type 'obrasCreateManyInput'.
+      Types of property 'nome' are incompatible.
+        Type 'string | null' is not assignable to type 'string'.
+          Type 'null' is not assignable to type 'string'.
+app/api/obras/[id]/coordinates-from-km/route.ts(29,9): error TS2353: Object literal may only specify known properties, and 'geometria' does not exist in type 'obrasSelect<DefaultArgs>'.
+app/api/obras/[id]/coordinates-from-km/route.ts(64,27): error TS2339: Property 'geometria' does not exist on type '{ id: number; created_at: Date | null; updated_at: Date | null; contract_id: string | null; status: string | null; nome: string; rodovia_id: number | null; descricao: string | null; ... 6 more ...; br_codigo: string | null; }'.
+app/api/people/route.ts(23,9): error TS7034: Variable 'peopleList' implicitly has type 'any[]' in some locations where its type cannot be determined.
+app/api/people/route.ts(86,10): error TS7005: Variable 'peopleList' implicitly has an 'any[]' type.

@@ -1,0 +1,18 @@
+﻿
+> gestao-de-conhecimento-frontend-nextjs@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 16.0.3 (Turbopack)
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À middlewareClientMaxBodySize: "50mb"
+     ┬À serverActions
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully in 5.0s
+   Running TypeScript ...
+   Collecting page data using 19 workers ...
+   Generating static pages using 19 workers (0/38) ...
+   Generating static pages using 19 workers (9/38) 
+   Generating static pages using 19 workers (18/38) 
+   Generating static pages using 19 workers (28/38) 

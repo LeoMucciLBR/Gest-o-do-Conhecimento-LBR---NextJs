@@ -1,0 +1,438 @@
+﻿
+> gestao-de-conhecimento-frontend-nextjs@0.1.0 build
+> next build
+
+node.exe : [baseline-b
+rowser-mapping] The 
+data in this module 
+is over two months 
+old.  To ensure 
+accurate Baseline 
+data, please update: 
+`npm i baseline-browse
+r-mapping@latest -D`
+No linha:1 caractere:1
++ & "C:\Program Files\
+nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ([baseline-   
+ brows...ping@late    
+st -D`:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+ ÔÜá `experimental.mid
+dlewareClientMaxBodySi
+ze` is deprecated. 
+Please use `experiment
+al.proxyClientMaxBodyS
+ize` instead in 
+next.config.ts.
+ ÔÜá Warning: Next.js 
+inferred your 
+workspace root, but 
+it may not be correct.
+ We detected multiple 
+lockfiles and 
+selected the 
+directory of C:\Users\
+leonardo.mucci\package
+-lock.json as the 
+root directory.
+ To silence this 
+warning, set 
+`turbopack.root` in 
+your Next.js config, 
+or consider removing 
+one of the lockfiles 
+if it's not needed.
+   See https://nextjs.
+org/docs/app/api-refer
+ence/config/next-confi
+g-js/turbopack#root-di
+rectory for more 
+information.
+ Detected additional 
+lockfiles: 
+   * C:\Users\leonardo
+.mucci\Desktop\Gest├úo
+ do Conhecimento LBR 
+- NextJs\package-lock.
+json
+
+   Ôû▓ Next.js 16.0.3 (Turbopack)
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À middlewareClientMaxBodySize: "50mb"
+     ┬À serverActions
+
+ ÔÜá The "middleware" 
+file convention is 
+deprecated. Please 
+use "proxy" instead. 
+Learn more: https://ne
+xtjs.org/docs/messages
+/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+ Ô£ô Compiled successfully in 4.8s
+   Running TypeScript ...
+   Collecting page data using 19 workers ...
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+   Generating static pages using 19 workers (0/38) ...
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+[baseline-browser-mapp
+ing] The data in this 
+module is over two 
+months old.  To 
+ensure accurate 
+Baseline data, please 
+update: `npm i baselin
+e-browser-mapping@late
+st -D`
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+   Generating static pages using 19 workers (9/38) 
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+   Generating static pages using 19 workers (18/38) 
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+useTheme must be used 
+within a 
+ThemeProvider. Using 
+fallback.
+   Generating static pages using 19 workers (28/38) 
+ Ô¿» 
+useSearchParams() 
+should be wrapped in 
+a suspense boundary 
+at page "/login". 
+Read more: https://nex
+tjs.org/docs/messages/
+missing-suspense-with-
+csr-bailout
+    at S (C:\Users\leo
+nardo.mucci\Desktop\Ge
+st├úo do Conhecimento 
+LBR - NextJs\.next\ser
+ver\chunks\ssr\fcfc3_n
+ext_74201fd6._.js:2:21
+11)
+    at p (C:\Users\leo
+nardo.mucci\Desktop\Ge
+st├úo do Conhecimento 
+LBR - NextJs\.next\ser
+ver\chunks\ssr\fcfc3_n
+ext_74201fd6._.js:4:48
+43)
+    at aG (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\.next\server\chunk
+s\ssr\Desktop_Gest├úo 
+do Conhecimento LBR - 
+NextJs_app_login_page_
+tsx_bd6f4e93._.js:1:23
+159)
+    at ar (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:84366)
+    at aa (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:86185)
+    at as (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:107952)
+    at ao (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:105374)
+    at an (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:84718)
+    at aa (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:86234)
+    at aa (C:\Users\le
+onardo.mucci\Desktop\G
+est├úo do 
+Conhecimento LBR - Nex
+tJs\node_modules\next\
+dist\compiled\next-ser
+ver\app-page-turbo.run
+time.prod.js:2:104714)
+Error occurred 
+prerendering page 
+"/login". Read more: h
+ttps://nextjs.org/docs
+/messages/prerender-er
+ror
+Export encountered an 
+error on /login/page: 
+/login, exiting the 
+build.
+ Ô¿» Next.js build 
+worker exited with 
+code: 1 and signal: 
+null
