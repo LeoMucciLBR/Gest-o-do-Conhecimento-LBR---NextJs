@@ -536,7 +536,6 @@ export async function PUT(
               contract_id: id,
               person_id: personId,
               role: mapToContractRole(p.role) as any,
-              custom_role: p.role, // Save the original text
             },
           })
         }
