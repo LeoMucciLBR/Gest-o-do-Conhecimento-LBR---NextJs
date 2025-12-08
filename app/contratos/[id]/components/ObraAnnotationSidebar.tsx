@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X, MapPin, Ruler, AlertTriangle, Plus, Trash2, Camera, Loader2, Save, ArrowLeft } from 'lucide-react'
-import type { ObraWithGeometry } from './ObraMapViewer'
+import ObraMapViewer, { type ObraWithGeometry } from './ObraMapViewer'
 import { useAuth } from '@/lib/hooks/useAuth'
 
 interface ObraAnnotationSidebarProps {
@@ -25,6 +25,8 @@ interface NonConformity {
   user?: {
     full_name: string
   }
+  latitude?: number
+  longitude?: number
 }
 
 interface NonConformityPhoto {
@@ -226,10 +228,35 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
         onClick={onClose}
       />
 
-      {/* Sidebar */}
-      <div className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto animate-in slide-in-from-right duration-300 flex flex-col">
+      {/* Map Container (Floating Card - Desktop Only) */}
+      <div className="fixed inset-y-0 left-0 right-[500px] z-[60] hidden sm:flex items-center justify-center pointer-events-none p-8">
+        <div className="w-[900px] max-w-full h-[650px] max-h-full bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border-4 border-white dark:border-gray-700 overflow-hidden pointer-events-auto relative animate-in fade-in zoom-in duration-300">
+           <ObraMapViewer 
+            obras={[obra]} 
+            nonConformities={nonConformities.map(nc => ({
+              id: nc.id,
+              lat: nc.latitude || 0,
+              lng: nc.longitude || 0,
+              severity: nc.severity,
+              description: nc.description,
+              km: nc.km
+            }))}
+            height="100%"
+            className="h-full"
+            selectedObraId={obra.id}
+           />
+           {/* Map User Hint Overlay */}
+           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-4 py-2 rounded-full text-sm font-medium text-slate-600 dark:text-gray-300 shadow-lg pointer-events-none flex items-center gap-2 border border-white/20">
+             <span>📍</span>
+             Clique no mapa para marcar uma não conformidade
+           </div>
+        </div>
+      </div>
+
+      {/* Sidebar (Right Side) */}
+      <div className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-hidden animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-200 dark:border-gray-700">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-lbr-primary to-secondary p-6 text-white shadow-lg z-10 shrink-0">
+        <div className="bg-gradient-to-r from-lbr-primary to-secondary p-6 text-white shadow-lg z-10 shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               {selectedNonConformityId ? (
@@ -266,8 +293,9 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content - Restoring Standard Sidebar Flow */}
         <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+          
           {/* Segment Info */}
           <div className="rounded-2xl p-6 border-2 border-blue-100 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-900/20">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -631,7 +659,9 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
           </div>
           )}
         </div>
-      </div>
+        </div>
+
+
     </>
   )
 }

@@ -63,7 +63,7 @@ export default function AdminLayout({
     )
   }
 
-  if (!session || session.users?.role !== 'ADMIN') {
+  if (!session || session.users?.role?.toUpperCase() !== 'ADMIN') {
     return null
   }
 

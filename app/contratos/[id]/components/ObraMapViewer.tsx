@@ -30,11 +30,8 @@ interface ObraMapViewerProps {
   hoveredObraId?: number | null
   nonConformities?: NonConformityMarker[]
   onNonConformityClick?: (nc: NonConformityMarker) => void
-}
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '600px',
+  height?: string
+  className?: string
 }
 
 export default function ObraMapViewer({ 
@@ -43,11 +40,18 @@ export default function ObraMapViewer({
   selectedObraId,
   hoveredObraId,
   nonConformities = [], 
-  onNonConformityClick 
+  onNonConformityClick,
+  height = '600px',
+  className = ''
 }: ObraMapViewerProps) {
   const { isLoaded } = useGoogleMaps()
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [initialBounds, setInitialBounds] = useState<google.maps.LatLngBounds | null>(null)
+
+  const mapContainerStyle = {
+    width: '100%',
+    height: height,
+  }
 
   const mapOptions = useMemo<google.maps.MapOptions>(() => {
     if (!isLoaded || typeof google === 'undefined') {
@@ -201,12 +205,14 @@ export default function ObraMapViewer({
     setMap(null)
   }, [])
 
-  // Auto-zoom to hovered obra or return to showing all obras with smooth animation
+  // Auto-zoom to hovered or selected obra
   useEffect(() => {
     if (!map) return
 
-    // If no obra is hovered, restore the initial view showing all obras
-    if (!hoveredObraId) {
+    // Priority: Hovered > Selected > All
+    const targetId = hoveredObraId || selectedObraId
+
+    if (!targetId) {
       if (initialBounds) {
         // Smooth transition back to showing all obras
         map.fitBounds(initialBounds)
@@ -214,31 +220,31 @@ export default function ObraMapViewer({
       return
     }
 
-    // If an obra is hovered, zoom to it with smooth animation
-    const hoveredObra = obrasWithGeometry.find(o => o.id === hoveredObraId)
-    if (!hoveredObra || !hoveredObra.geometria) return
+    // If an obra is hovered or selected, zoom to it with smooth animation
+    const targetObra = obrasWithGeometry.find(o => o.id === targetId)
+    if (!targetObra || !targetObra.geometria) return
 
     const bounds = new google.maps.LatLngBounds()
-    addGeometryToBounds(hoveredObra.geometria, bounds)
+    addGeometryToBounds(targetObra.geometria, bounds)
     
     // Add padding for better visual appearance
     const padding = { top: 50, right: 50, bottom: 50, left: 50 }
     
-    // Smooth pan and zoom to the hovered obra
+    // Smooth pan and zoom to the target obra
     map.fitBounds(bounds, padding)
     
     // Optionally adjust zoom to not be too close with smooth animation
     const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
       const currentZoom = map.getZoom()
-      if (currentZoom && currentZoom > 14) {
-        map.setZoom(14)
+      if (currentZoom && currentZoom > 16) {
+        map.setZoom(16)
       }
     })
 
     return () => {
       google.maps.event.removeListener(listener)
     }
-  }, [hoveredObraId, map, obrasWithGeometry, initialBounds])
+  }, [hoveredObraId, selectedObraId, map, obrasWithGeometry, initialBounds])
 
 
   if (!isLoaded) {
@@ -266,7 +272,7 @@ export default function ObraMapViewer({
   }
 
   return (
-    <div className="w-full h-[600px] rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-200 dark:border-gray-700">
+    <div className={`w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-200 dark:border-gray-700 ${className}`}>
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={center}

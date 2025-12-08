@@ -90,6 +90,9 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
 
           status: (dto.status as any) ?? 'Ativo',
           location: dto.location ?? null,
+          data_inicio: dto.dataInicio ? new Date(dto.dataInicio) : null,
+          data_fim: dto.dataFim ? new Date(dto.dataFim) : null,
+          valor: dto.valor ?? null,
         },
       })
 

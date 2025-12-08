@@ -3,7 +3,7 @@
  */
 export function isAdmin(session: { user?: { role: string } | null } | null): boolean {
   if (!session || !session.user) return false
-  return session.user.role === 'ADMIN'
+  return session.user.role?.toUpperCase() === 'ADMIN'
 }
 
 /**

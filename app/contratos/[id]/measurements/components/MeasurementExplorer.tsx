@@ -20,8 +20,12 @@ import {
   Edit,
   Move,
   X,
-  ExternalLink
+  ExternalLink,
+  Users,
+  Building2
 } from 'lucide-react'
+
+import SupplierRegistrationModal from './SupplierRegistrationModal'
 import { toast } from 'sonner'
 
 interface MeasurementFolder {
@@ -72,11 +76,119 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
   const [isUploading, setIsUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [previewFile, setPreviewFile] = useState<MeasurementFile | null>(null)
+  
+  // Tabs & Supplier Logic
+  const [activeTab, setActiveTab] = useState<'CLIENTE' | 'FORNECEDOR'>('CLIENTE')
+  const [supplierRootId, setSupplierRootId] = useState<string | null>(null)
+  // Supplier Registration State
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false)
+  
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    loadFolderContents()
-  }, [currentFolderId])
+    if (activeTab === 'FORNECEDOR' && !supplierRootId) {
+       ensureSupplierRoot()
+    } else {
+       loadFolderContents()
+    }
+  }, [currentFolderId, activeTab])
+
+  async function ensureSupplierRoot() {
+    try {
+      setLoading(true)
+      // 1. Check if we already have the ID (optimization)
+      if (supplierRootId) {
+        if (currentFolderId !== supplierRootId) {
+             setCurrentFolderId(supplierRootId)
+             setBreadcrumbs([{ id: supplierRootId, name: 'Fornecedores' }])
+        }
+        return
+      }
+
+      // 2. Fetch root folders to find 'Fornecedores'
+      const res = await fetch(`/api/contracts/${contractId}/measurements/folders?parent=`)
+      const data = await res.json()
+      const roots = data.folders || []
+      
+      let supplierFolder = roots.find((f: any) => f.name.toLowerCase() === 'fornecedores')
+      
+      // 3. Create if not exists
+      if (!supplierFolder) {
+         const createRes = await fetch(`/api/contracts/${contractId}/measurements/folders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: 'Fornecedores', parent_folder_id: null })
+         })
+         
+         if (createRes.status === 409) {
+           // If it already exists (Conflict), find it again accurately or force fetch
+           const retryRes = await fetch(`/api/contracts/${contractId}/measurements/folders?parent=`)
+           const retryData = await retryRes.json()
+           supplierFolder = retryData.folders?.find((f: any) => f.name.toLowerCase() === 'fornecedores')
+         } else if (!createRes.ok) {
+           throw new Error('Falha ao criar pasta de fornecedores')
+         } else {
+           supplierFolder = await createRes.json()
+           if ('folder' in supplierFolder) {
+             supplierFolder = supplierFolder.folder
+           }
+         }
+      }
+      
+      if (supplierFolder) {
+        setSupplierRootId(supplierFolder.id)
+        setCurrentFolderId(supplierFolder.id)
+        setBreadcrumbs([{ id: supplierFolder.id, name: 'Fornecedores' }])
+      } else {
+        console.warn('Could not ensure supplier folder')
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  async function handleTabChange(tab: 'CLIENTE' | 'FORNECEDOR') {
+    if (tab === activeTab) return
+    
+    setActiveTab(tab)
+    if (tab === 'CLIENTE') {
+      setCurrentFolderId(null)
+      setBreadcrumbs([{ id: null, name: 'Medições' }])
+    }
+  }
+
+  // --- NEW SUPPLIER LOGIC START ---
+  async function handleRegistrationSuccess(supplierName: string) {
+    setShowRegistrationModal(false)
+    await createSupplierFolder(supplierName)
+  }
+
+  async function createSupplierFolder(folderName: string) {
+    if (!supplierRootId) return
+
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/measurements/folders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: folderName,
+          parent_folder_id: supplierRootId
+        })
+      })
+
+      if (!res.ok) {
+         if (res.status === 409 || res.status === 400) toast.success('Pasta do fornecedor já existe (ou foi recuperada)')
+         else throw new Error('Erro ao adicionar fornecedor')
+      } else {
+         toast.success('Fornecedor adicionado com sucesso!')
+      }
+
+      loadFolderContents()
+    } catch (error) {
+      toast.error('Erro ao criar pasta do fornecedor')
+    }
+  }
+  // --- NEW SUPPLIER LOGIC END ---
 
   async function loadFolderContents() {
     try {
@@ -88,7 +200,14 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
       )
       if (!foldersRes.ok) throw new Error('Erro ao carregar pastas')
       const foldersData = await foldersRes.json()
-      setFolders(foldersData.folders || [])
+      let loadedFolders = foldersData.folders || []
+
+      // Filter out 'Fornecedores' from Client view at root
+      if (activeTab === 'CLIENTE' && currentFolderId === null) {
+        loadedFolders = loadedFolders.filter((f: any) => f.name !== 'Fornecedores')
+      }
+
+      setFolders(loadedFolders)
 
       // Load files
       const filesRes = await fetch(
@@ -190,8 +309,6 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
   function handleUploadClick() {
     fileInputRef.current?.click()
   }
-
-
 
   async function handleUploadFile(file: File) {
     // Check file size (50MB limit)
@@ -449,13 +566,40 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
       )}
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            📁 Medições - {contractName}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Gerencie documentos e arquivos de medições
-          </p>
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              📁 Medições - {contractName}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Gerencie documentos e arquivos de medições
+            </p>
+          </div>
+          
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <button
+              onClick={() => handleTabChange('CLIENTE')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'CLIENTE'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Cliente
+            </button>
+            <button
+              onClick={() => handleTabChange('FORNECEDOR')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'FORNECEDOR'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Fornecedores
+            </button>
+          </div>
         </div>
 
         {/* Toolbar */}
@@ -506,25 +650,38 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
 
             {/* Actions */}
             <div className="flex gap-2">
-              <button
-                onClick={openNewFolderModal}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Nova Pasta</span>
-              </button>
-              <button
-                onClick={handleUploadClick}
-                disabled={isUploading}
-                className={`flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-lg ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isUploading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">{isUploading ? 'Enviando...' : 'Upload'}</span>
-              </button>
+              {activeTab === 'FORNECEDOR' && currentFolderId === supplierRootId ? (
+                <button
+                  onClick={() => setShowRegistrationModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Adicionar Fornecedor</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={openNewFolderModal}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Nova Pasta</span>
+                  </button>
+                  <button
+                    onClick={handleUploadClick}
+                    disabled={isUploading}
+                    className={`flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-lg ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {isUploading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">{isUploading ? 'Enviando...' : 'Upload'}</span>
+                  </button>
+                </>
+              )}
+              
               <input
                 type="file"
                 ref={fileInputRef}
@@ -651,7 +808,7 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
 
       {/* New Folder Modal */}
       {showNewFolderModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Nova Pasta
@@ -661,7 +818,7 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
               placeholder="Nome da pasta"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
               autoFocus
             />
@@ -685,6 +842,13 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
           </div>
         </div>
       )}
+
+       {/* Supplier Registration Modal */}
+       <SupplierRegistrationModal
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          onSuccess={handleRegistrationSuccess}
+        />
 
       {/* Preview Modal */}
       {previewFile && (

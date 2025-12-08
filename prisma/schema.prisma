@@ -125,6 +125,66 @@ model users {
   sessions              sessions[]
   user_passwords        user_passwords?
   ficha                 fichas?                 @relation(fields: [ficha_id], references: [id])
+  created_softwares     contract_softwares[]    @relation("SoftwareCreator")
+  software_comments     software_comments[]
+}
+
+model suppliers {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  email      String
+  phone      String?
+  cnpj       String?  @unique
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model software_providers {
+  id         String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  email      String?
+  phone      String?
+  website    String?
+  created_at DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
+
+  softwares  contract_softwares[]
+}
+
+model contract_softwares {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id    String              @db.Uuid
+  name           String
+  description    String?             @db.Text
+  main_features  String?             @db.Text
+  provider_id    String?             @db.Uuid
+  link           String?
+  created_by     String              @db.Uuid
+  created_at     DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime            @default(now()) @updatedAt @db.Timestamptz(6)
+
+  contract       contracts           @relation(fields: [contract_id], references: [id], onDelete: Cascade)
+  provider       software_providers? @relation(fields: [provider_id], references: [id], onDelete: SetNull)
+  creator        users               @relation("SoftwareCreator", fields: [created_by], references: [id])
+  comments       software_comments[]
+
+  @@index([contract_id])
+  @@index([provider_id])
+  @@index([created_by])
+}
+
+model software_comments {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  software_id String             @db.Uuid
+  user_id     String             @db.Uuid
+  comment     String             @db.Text
+  created_at  DateTime           @default(now()) @db.Timestamptz(6)
+
+  software    contract_softwares @relation(fields: [software_id], references: [id], onDelete: Cascade)
+  user        users              @relation(fields: [user_id], references: [id])
+
+  @@index([software_id])
+  @@index([user_id])
 }
 
 model fichas {
@@ -216,6 +276,7 @@ model contracts {
   obras               obras[]
   product_files       product_files[]
   product_folders     product_folders[]
+  contract_softwares  contract_softwares[]
 
   @@index([organization_id], map: "idx_contracts_org")
   @@index([status], map: "idx_contracts_status")

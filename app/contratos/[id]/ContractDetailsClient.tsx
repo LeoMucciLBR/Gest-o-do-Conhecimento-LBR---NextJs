@@ -32,9 +32,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { apiFetch } from '@/lib/api/api'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
 import ObraMapViewer, { type ObraWithGeometry, type NonConformityMarker } from './components/ObraMapViewer'
+import LocationMapViewer from './components/LocationMapViewer'
 import ObraAnnotationSidebar from './components/ObraAnnotationSidebar'
 import MeasurementExplorer from './measurements/components/MeasurementExplorer'
 import ProductExplorer from './products/components/ProductExplorer'
+import SoftwareExplorer from './software/components/SoftwareExplorer'
 import FichaModal from '@/components/modals/FichaModal'
 
 type Contract = {
@@ -47,9 +49,9 @@ type Contract = {
   location: string | null
   lamina_url: string | null
   image_url: string | null
-  contract_value: string | null
-  start_date: string | null
-  end_date: string | null
+  valor: string | null
+  data_inicio: string | null
+  data_fim: string | null
   characteristics: string | null
 }
 
@@ -114,6 +116,9 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [selectedPersonType, setSelectedPersonType] = useState<'INTERNA' | 'CLIENTE'>('INTERNA')
   const [isFabOpen, setIsFabOpen] = useState(false)
   const [hoveredObraId, setHoveredObraId] = useState<number | null>(null)
+  const [mapModalOpen, setMapModalOpen] = useState(false)
+  const [mapModalType, setMapModalType] = useState<'CLIENTE' | 'LBR' | 'OBRA' | 'OBRA_LOCATION' | null>(null)
+  const [mapModalAddress, setMapModalAddress] = useState<string | null>(null)
 
   const handleNonConformityClick = (nc: NonConformityMarker) => {
     console.log('Parent received NC click:', nc)
@@ -405,7 +410,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
               </div>
               <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Valor do Contrato</h4>
               <p className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
-                {contract.contract_value || 'Não informado'}
+                {contract.valor || 'Não informado'}
               </p>
             </div>
 
@@ -419,14 +424,14 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 <div>
                   <p className="text-xs text-slate-500 dark:text-gray-400 mb-1">Início</p>
                   <p className="text-lg font-bold text-slate-900 dark:text-white">
-                    {contract.start_date ? new Date(contract.start_date).toLocaleDateString('pt-BR') : '-'}
+                    {contract.data_inicio ? new Date(contract.data_inicio).toLocaleDateString('pt-BR') : '-'}
                   </p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-slate-400" />
                 <div>
                   <p className="text-xs text-slate-500 dark:text-gray-400 mb-1">Término</p>
                   <p className="text-lg font-bold text-slate-900 dark:text-white">
-                    {contract.end_date ? new Date(contract.end_date).toLocaleDateString('pt-BR') : '-'}
+                    {contract.data_fim ? new Date(contract.data_fim).toLocaleDateString('pt-BR') : '-'}
                   </p>
                 </div>
               </div>
@@ -585,72 +590,155 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
 
               {selectedSection === 'localizacao' && (
                 <div className="space-y-6">
-                   <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
-                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-lbr-primary" />
-                        Localização Principal
-                      </h4>
-                      <p className="text-slate-700 dark:text-gray-300 text-lg">
-                        {contract.location || 'Não informada'}
+                  {/* Location Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    {/* Card 1: Escritório Cliente */}
+                    <div 
+                      onClick={() => {
+                        const gestor = participants.find(p => p.role === 'GESTOR_AREA') || participants.find(p => !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role));
+                        const address = gestor?.person?.office || 'Endereço não informado';
+                        if (address && address !== 'Endereço não informado') {
+                           setMapModalType('CLIENTE');
+                           setMapModalAddress(address);
+                           setMapModalOpen(true);
+                        }
+                      }}
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                         <Building2 className="w-16 h-16 text-blue-500" />
+                      </div>
+                      <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl w-fit mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300">
+                        <MapPin className="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:text-white" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Escritório Cliente</h4>
+                      <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-3">
+                        {(participants.find(p => p.role === 'GESTOR_AREA') || participants.find(p => !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role)))?.person?.office || 'Endereço não informado'}
                       </p>
-                   </div>
-                   
-                   {/* Interactive Map */}
+                      <div className="mt-4 flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span>Ver no mapa</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    {/* Card 2: Localização da Obra/Projeto */}
+                    <div 
+                      onClick={() => {
+                         const loc = contract.location || 'Localização não informada';
+                         if (loc && loc !== 'Localização não informada') {
+                           setMapModalType('OBRA_LOCATION');
+                           setMapModalAddress(loc);
+                           setMapModalOpen(true);
+                         }
+                      }}
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                         <MapPin className="w-16 h-16 text-orange-500" />
+                      </div>
+                      <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl w-fit mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300">
+                        <Target className="w-6 h-6 text-orange-600 dark:text-orange-400 group-hover:text-white" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Localização da Obra/Projeto</h4>
+                      <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-3">
+                        {contract.location || 'Localização não informada'}
+                      </p>
+                       <div className="mt-4 flex items-center gap-2 text-sm text-orange-600 dark:text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span>Ver no mapa</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    {/* Card 3: Escritório LBR */}
+                    <div 
+                      onClick={() => {
+                         const lbr = participants.find(p => ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL'].includes(p.role));
+                         const address = lbr?.person?.office || 'Endereço não informado';
+                         if (address && address !== 'Endereço não informado') {
+                           setMapModalType('LBR');
+                           setMapModalAddress(address);
+                           setMapModalOpen(true);
+                         }
+                      }}
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                         <Briefcase className="w-16 h-16 text-purple-500" />
+                      </div>
+                      <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl w-fit mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors duration-300">
+                        <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:text-white" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Escritório LBR</h4>
+                      <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-3">
+                         {participants.find(p => ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL'].includes(p.role))?.person?.office || 'Endereço não informado'}
+                      </p>
+                       <div className="mt-4 flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span>Ver no mapa</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                  </div>
+
+                   {/* Visualização dos Trechos (Restored) */}
                    {data.obras && data.obras.length > 0 && (
                      <div className="space-y-6">
-                       <div>
-                         <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                           🗺️ Visualização dos Trechos
-                         </h4>
-                         <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
-                           Clique em um trecho no mapa para ver detalhes e adicionar anotações
-                         </p>
-                         <ObraMapViewer
-                           obras={data.obras}
-                           onObraClick={handleObraClick}
-                           selectedObraId={selectedObra?.id || null}
-                           hoveredObraId={hoveredObraId}
-                           nonConformities={nonConformities}
-                           onNonConformityClick={handleNonConformityClick}
-                         />
-                       </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                            🗺️ Visualização dos Trechos
+                          </h4>
+                          <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                            Clique em um trecho no mapa para ver detalhes e adicionar anotações
+                          </p>
+                          <ObraMapViewer
+                            obras={data.obras}
+                            onObraClick={handleObraClick}
+                            selectedObraId={selectedObra?.id || null}
+                            hoveredObraId={hoveredObraId}
+                            nonConformities={nonConformities}
+                            onNonConformityClick={handleNonConformityClick}
+                          />
+                        </div>
 
-                       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-gray-700">
-                         <table className="w-full text-left border-collapse">
-                           <thead className="bg-slate-50 dark:bg-gray-900/50">
-                             <tr>
-                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">UF</th>
-                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Rodovia</th>
-                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Início</th>
-                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Fim</th>
-                               <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Extensão</th>
-                             </tr>
-                           </thead>
-                           <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
-                             {data.obras.map((obra: any) => (
-                               <tr 
-                                 key={obra.id} 
-                                 className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                                 onClick={() => handleObraClick(obra)}
-                                 onMouseEnter={() => setHoveredObraId(obra.id)}
-                                 onMouseLeave={() => setHoveredObraId(null)}
-                               >
-                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.uf || '-'}</td>
-                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.nome || '-'}</td>
-                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_inicio}</td>
-                                 <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_fim}</td>
-                                 <td className="py-4 px-6 text-green-600 dark:text-green-400 font-bold">
-                                   {(obra.km_fim - obra.km_inicio).toFixed(2)} km
-                                 </td>
-                               </tr>
-                             ))}
-                           </tbody>
-                         </table>
-                       </div>
+                        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-gray-700">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 dark:bg-gray-900/50">
+                              <tr>
+                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">UF</th>
+                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Rodovia</th>
+                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Início</th>
+                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Fim</th>
+                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Extensão</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
+                              {data.obras.map((obra: any) => (
+                                <tr 
+                                  key={obra.id} 
+                                  className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
+                                  onClick={() => handleObraClick(obra)}
+                                  onMouseEnter={() => setHoveredObraId(obra.id)}
+                                  onMouseLeave={() => setHoveredObraId(null)}
+                                >
+                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.uf || '-'}</td>
+                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.nome || '-'}</td>
+                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_inicio}</td>
+                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_fim}</td>
+                                  <td className="py-4 px-6 text-green-600 dark:text-green-400 font-bold">
+                                    {(obra.km_fim - obra.km_inicio).toFixed(2)} km
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                      </div>
                    )}
                 </div>
               )}
+
+
 
               {selectedSection === 'medicoes' && (
                 <div className="animate-in fade-in slide-in-from-right duration-500">
@@ -670,7 +758,13 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 </div>
               )}
 
-              {['software', 'dificuldades'].includes(selectedSection) && (
+              {selectedSection === 'software' && (
+                 <div className="animate-in fade-in slide-in-from-right duration-500">
+                  <SoftwareExplorer contractId={contractId} />
+                </div>
+              )}
+
+              {['dificuldades'].includes(selectedSection) && (
                 <div className="text-center py-12">
                   <div className="inline-flex p-6 bg-slate-100 dark:bg-gray-700 rounded-full mb-4">
                     {sections.find(s => s.id === selectedSection)?.icon}
@@ -783,7 +877,79 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
           )}
         </AnimatePresence>
       </div>
+
     </div>
+      {/* Generic Map Modal */}
+      <AnimatePresence>
+        {mapModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+            onClick={() => setMapModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-5xl h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl overflow-hidden relative"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <MapPin className="w-6 h-6 text-[#2f4982]" />
+                  {mapModalType === 'OBRA' 
+                    ? 'Mapa dos Trechos' 
+                    : mapModalType === 'CLIENTE' 
+                      ? 'Escritório do Cliente' 
+                      : mapModalType === 'LBR'
+                        ? 'Escritório LBR'
+                        : 'Localização da Obra/Projeto'
+                  }
+                </h3>
+                <button 
+                  onClick={() => setMapModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                >
+                  <span className="sr-only">Fechar</span>
+                  <svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 w-full h-full relative bg-gray-50 dark:bg-gray-800/50">
+                 {mapModalType === 'OBRA' ? (
+                   <div className="absolute inset-0">
+                     <ObraMapViewer 
+                        obras={data?.obras || []}
+                        nonConformities={[]}
+                        height="100%"
+                        className="h-full w-full"
+                     />
+                   </div>
+                 ) : (
+                    <LocationMapViewer 
+                      address={mapModalAddress}
+                      className="h-full w-full"
+                    />
+                 )}
+              </div>
+              
+              {mapModalType !== 'OBRA' && (
+                 <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 text-center">
+                    <p className="text-slate-600 dark:text-gray-300 font-medium text-lg">
+                      📍 {mapModalAddress}
+                    </p>
+                 </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
