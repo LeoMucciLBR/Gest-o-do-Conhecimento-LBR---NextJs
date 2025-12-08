@@ -154,7 +154,6 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
               contract_id: contract.id,
               person_id: personId,
               role: mapToContractRole(p.role) as any,
-              custom_role: p.role, // Save the original text
             },
           })
         }
