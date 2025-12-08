@@ -3,6 +3,44 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 import { Prisma } from '@prisma/client'
 
+// Valid contract role values from Prisma enum
+const VALID_CONTRACT_ROLES = [
+  'GESTOR_AREA',
+  'GERENTE_ENGENHARIA', 
+  'COORDENADORA',
+  'ENGENHEIRO_RESPONSAVEL',
+  'GERENTE_PROJETO',
+  'ANALISTA',
+  'OUTRO'
+] as const
+
+// Helper to map any string to a valid contract_role enum value
+function mapToContractRole(role: string | undefined | null): string {
+  if (!role) return 'OUTRO'
+  
+  const normalized = role.toUpperCase().trim()
+  
+  // Check if it matches a valid enum value
+  if (VALID_CONTRACT_ROLES.includes(normalized as any)) {
+    return normalized
+  }
+  
+  // Map common variations
+  const mappings: Record<string, string> = {
+    'GESTOR': 'GESTOR_AREA',
+    'GERENTE': 'GERENTE_PROJETO',
+    'COORDENADOR': 'COORDENADORA',
+    'ENGENHEIRO': 'ENGENHEIRO_RESPONSAVEL',
+  }
+  
+  if (mappings[normalized]) {
+    return mappings[normalized]
+  }
+  
+  // Default to OUTRO for any custom text
+  return 'OUTRO'
+}
+
 // GET /api/contracts/[id] - Get single contract with details
 export async function GET(
   request: NextRequest,
@@ -150,7 +188,7 @@ export async function GET(
             recortes AS (
               SELECT
                 ST_LineSubstring(
-                  geom::geography::geometry,
+                  ST_LineMerge(geom::geography::geometry),
                   (km_rec_ini - km_inicial) / NULLIF(total_km,0)::float,
                   (km_rec_fim - km_inicial) / NULLIF(total_km,0)::float
                 ) AS geom_recortado,
@@ -497,7 +535,8 @@ export async function PUT(
             data: {
               contract_id: id,
               person_id: personId,
-              role: p.role as any,
+              role: mapToContractRole(p.role) as any,
+              custom_role: p.role, // Save the original text
             },
           })
         }

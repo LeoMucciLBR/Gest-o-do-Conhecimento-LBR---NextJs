@@ -8,7 +8,7 @@ import { apiFetch } from '@/lib/api/api'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
 import type { LocationValue } from '@/components/ui/LocationField'
 import GeralSection from './components/GeralSection'
-import ClienteSection from './components/ClienteSection'
+import ClienteSection, { type ClientPerson } from './components/ClienteSection'
 import EquipeSection, { type TeamMember } from './components/EquipeSection'
 import LocalizacaoSection from './components/LocalizacaoSection'
 import ObrasSection, { type ObraRow, type RodoviaOption, type ObraTipo } from './components/ObrasSection'
@@ -31,12 +31,7 @@ interface FormData {
   localizacao: LocationValue
   localizacaoEscritorioCliente: LocationValue
   localizacaoEscritorioLbr: LocationValue
-  gestorArea: string
-  emailGestor: string
-  telefoneGestor: string
-  gerenteEngenharia: string
-  emailGerente: string
-  telefoneGerente: string
+  clientPersons: ClientPerson[]
   teamMembers: TeamMember[]
 }
 
@@ -73,25 +68,16 @@ function buildParticipants(form: FormData) {
   const escritorioLbr = form.localizacaoEscritorioLbr?.texto?.trim() || null
 
   const arr = [
-    // Client participants
-    form.gestorArea?.trim() && {
-      role: 'GESTOR_AREA',
+    // Client participants (dynamic)
+    ...form.clientPersons.map(person => ({
+      role: person.role,
       person: {
-        full_name: form.gestorArea.trim(),
-        email: form.emailGestor || null,
-        phone: form.telefoneGestor || null,
+        full_name: person.name,
+        email: person.email || null,
+        phone: person.phone || null,
         office: escritorioCliente,
       },
-    },
-    form.gerenteEngenharia?.trim() && {
-      role: 'GERENTE_ENGENHARIA',
-      person: {
-        full_name: form.gerenteEngenharia.trim(),
-        email: form.emailGerente || null,
-        phone: form.telefoneGerente || null,
-        office: escritorioCliente,
-      },
-    },
+    })),
     // Team members (dynamic)
     ...form.teamMembers.map(member => ({
       role: member.role,
@@ -102,7 +88,7 @@ function buildParticipants(form: FormData) {
         office: escritorioLbr,
       },
     })),
-  ].filter(Boolean)
+  ]
 
   return arr
 }
@@ -132,12 +118,7 @@ export default function CadastroContrato() {
     localizacao: emptyLocation,
     localizacaoEscritorioCliente: emptyLocation,
     localizacaoEscritorioLbr: emptyLocation,
-    gestorArea: '',
-    emailGestor: '',
-    telefoneGestor: '',
-    gerenteEngenharia: '',
-    emailGerente: '',
-    telefoneGerente: '',
+    clientPersons: [],
     teamMembers: [],
   })
 
@@ -268,22 +249,33 @@ export default function CadastroContrato() {
             lng: null, 
             placeId: null 
           },
-          gestorArea: gestor?.full_name || '',
-          emailGestor: gestor?.email || '',
-          telefoneGestor: gestor?.phone || '',
-          gerenteEngenharia: gerente?.full_name || '',
-          emailGerente: gerente?.email || '',
-          telefoneGerente: gerente?.phone || '',
+          clientPersons: participants
+            .filter((p: any) => {
+              const role = (p.role || '').toUpperCase()
+              // Include all client-type participants except internal team
+              // NOTE: OUTRO is excluded from this filter as it can be either client or team
+              return !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(role)
+            })
+            .map((p: any, index: number) => ({
+              id: `loaded-client-${index}`,
+              personId: p.person_id || '',
+              name: p.person?.full_name || '',
+              role: p.custom_role || p.role || 'OUTRO', // Use custom_role if available
+              email: p.person?.email || '',
+              phone: p.person?.phone || ''
+            })),
           teamMembers: participants
             .filter((p: any) => {
               const role = (p.role || '').toUpperCase()
-              return !['GESTOR_AREA', 'GERENTE_ENGENHARIA'].includes(role)
+              // Include only internal team members
+              // NOTE: OUTRO is included in clients, not team, since custom client roles map to OUTRO
+              return ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(role)
             })
             .map((p: any, index: number) => ({
-              id: `loaded-${index}`,
+              id: `loaded-team-${index}`,
               personId: p.person_id || '',
               name: p.person?.full_name || '',
-              role: p.role || 'OUTRO',
+              role: p.custom_role || p.role || 'OUTRO', // Use custom_role if available
               email: p.person?.email || '',
               phone: p.person?.phone || ''
             })),
@@ -437,11 +429,11 @@ export default function CadastroContrato() {
   }
 
   const tabs = [
-    { id: 'geral' as TabType, label: 'Geral', icon: FileText },
+    { id: 'geral' as TabType, label: 'Dados do Contrato', icon: FileText },
     { id: 'localizacao' as TabType, label: 'Localização', icon: MapPin },
-    { id: 'cliente' as TabType, label: 'Cliente', icon: User },
-    { id: 'equipe' as TabType, label: 'Equipe', icon: Users },
-    { id: 'obras' as TabType, label: 'Obras', icon: Layers },
+    { id: 'cliente' as TabType, label: 'Dados do Cliente', icon: User },
+    { id: 'equipe' as TabType, label: 'Dados da Equipe', icon: Users },
+    { id: 'obras' as TabType, label: 'Setor', icon: Layers },
   ]
 
   if (loadingExisting) {
@@ -605,7 +597,7 @@ export default function CadastroContrato() {
                 <div className="animate-in fade-in slide-in-from-right duration-500">
                   <ClienteSection
                     formData={formData}
-                    onChange={handleInputChange}
+                    onClientPersonsChange={(persons) => setFormData((prev) => ({ ...prev, clientPersons: persons }))}
                   />
                 </div>
               )}

@@ -235,13 +235,15 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
 
   const { contract, organization, participants } = data
 
+  // Clientes são todos EXCETO os cargos específicos da equipe interna
+  // NOTE: OUTRO é incluído em clientes porque custom client roles são mapeados para OUTRO
   const clienteParticipants = participants.filter((p) =>
-    ['GESTOR_AREA', 'GERENTE_ENGENHARIA'].includes(p.role.toUpperCase())
+    !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role.toUpperCase())
   )
 
-  // Equipe é qualquer participante que NÃO seja cliente
+  // Equipe são apenas os cargos específicos internos
   const equipeParticipants = participants.filter((p) =>
-    !['GESTOR_AREA', 'GERENTE_ENGENHARIA'].includes(p.role.toUpperCase())
+    ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role.toUpperCase())
   )
 
   const sections = [
@@ -522,7 +524,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                         className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-secondary dark:text-secondary-light mb-2 uppercase tracking-wider">
-                          {prettyRole(p.role)}
+                          {(p as any).custom_role || prettyRole(p.role)}
                         </p>
                         <p className="text-xl font-bold text-slate-900 dark:text-white mb-2">{p.person.full_name}</p>
                         <div className="flex flex-col gap-2 text-sm text-slate-700 dark:text-gray-300 font-medium">
@@ -556,7 +558,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                         className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wider">
-                          {prettyRole(p.role)}
+                          {(p as any).custom_role || prettyRole(p.role)}
                         </p>
                         <p className="text-xl font-bold text-slate-900 dark:text-white mb-2">{p.person.full_name}</p>
                         <div className="flex flex-col gap-2 text-sm text-slate-700 dark:text-gray-300 font-medium">

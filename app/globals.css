@@ -43,14 +43,16 @@ body {
 /* Resets úteis para inputs/botões */
 @layer base {
   button,
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  /* Input reset - preserve cursor and allow background styling */
   input,
-  select,
   textarea {
     -webkit-appearance: none;
     appearance: none;
-    background: transparent;
-    border: 0;
-    outline: none;
   }
 }
 

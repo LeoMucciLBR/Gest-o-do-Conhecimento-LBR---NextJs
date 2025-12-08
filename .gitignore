@@ -45,3 +45,9 @@ backup*.sql
 segmentos_*.sql
 *.sql.gz
 *.sql.zip
+export_sp_roads.sql
+rodovias_sp_export.sql
+rodovias_sp_filtered.sql
+rodovias_sp_full.sql
+rodovias_sp.csv
+segmentos_sp.csv
