@@ -200,7 +200,11 @@ export async function GET(
             ),
             unido AS (
               SELECT
-                ST_Transform(ST_LineMerge(ST_Collect(geom_recortado)), 4326) AS geom_unido,
+                CASE 
+                  WHEN ST_SRID(ST_LineMerge(ST_Collect(geom_recortado))) = 4326 
+                  THEN ST_LineMerge(ST_Collect(geom_recortado))
+                  ELSE ST_Transform(ST_LineMerge(ST_Collect(geom_recortado)), 4326)
+                END AS geom_unido,
                 MIN(uf)      AS uf,
                 MIN(rodovia) AS rodovia
               FROM recortes
