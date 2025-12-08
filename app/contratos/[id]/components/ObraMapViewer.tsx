@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api'
 import { useGoogleMaps } from '@/hooks/useGoogleMaps'
 import { Loader2 } from 'lucide-react'
@@ -27,6 +27,7 @@ interface ObraMapViewerProps {
   obras: ObraWithGeometry[]
   onObraClick?: (obra: ObraWithGeometry, coords?: { lat: number; lng: number }) => void
   selectedObraId?: number | null
+  hoveredObraId?: number | null
   nonConformities?: NonConformityMarker[]
   onNonConformityClick?: (nc: NonConformityMarker) => void
 }
@@ -36,23 +37,49 @@ const mapContainerStyle = {
   height: '600px',
 }
 
-const mapOptions: google.maps.MapOptions = {
-  disableDefaultUI: false,
-  zoomControl: true,
-  streetViewControl: true,
-  mapTypeControl: true,
-  fullscreenControl: true,
-}
-
 export default function ObraMapViewer({ 
   obras, 
   onObraClick, 
-  selectedObraId, 
+  selectedObraId,
+  hoveredObraId,
   nonConformities = [], 
   onNonConformityClick 
 }: ObraMapViewerProps) {
   const { isLoaded } = useGoogleMaps()
   const [map, setMap] = useState<google.maps.Map | null>(null)
+  const [initialBounds, setInitialBounds] = useState<google.maps.LatLngBounds | null>(null)
+
+  const mapOptions = useMemo<google.maps.MapOptions>(() => {
+    if (!isLoaded || typeof google === 'undefined') {
+      return {
+        disableDefaultUI: false,
+        zoomControl: true,
+        streetViewControl: true,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        gestureHandling: 'greedy',
+      }
+    }
+    
+    return {
+      disableDefaultUI: false,
+      zoomControl: true,
+      streetViewControl: true,
+      mapTypeControl: true,
+      fullscreenControl: true,
+      gestureHandling: 'greedy',
+      mapTypeControlOptions: {
+        style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+      },
+      styles: [
+        {
+          featureType: "road",
+          elementType: "geometry",
+          stylers: [{ visibility: "simplified" }]
+        }
+      ]
+    }
+  }, [isLoaded])
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -84,6 +111,27 @@ export default function ObraMapViewer({
 
   // Filter obras with valid geometries
   const obrasWithGeometry = obras.filter((obra) => obra.geometria)
+
+  // Helper function to add geometry coordinates to bounds
+  const addGeometryToBounds = (geometry: any, bounds: google.maps.LatLngBounds) => {
+    if (!geometry || !geometry.type) return
+
+    if (geometry.type === 'LineString' && geometry.coordinates) {
+      geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
+        bounds.extend({ lat, lng })
+      })
+    } else if (geometry.type === 'MultiLineString' && geometry.coordinates) {
+      geometry.coordinates.forEach((line: [number, number][]) => {
+        line.forEach(([lng, lat]) => {
+          bounds.extend({ lat, lng })
+        })
+      })
+    } else if (geometry.type === 'GeometryCollection' && geometry.geometries) {
+      geometry.geometries.forEach((geom: any) => {
+        addGeometryToBounds(geom, bounds)
+      })
+    }
+  }
 
   // Calculate center point from all geometries
   const calculateCenter = (): { lat: number; lng: number } => {
@@ -143,35 +191,55 @@ export default function ObraMapViewer({
       
       if (hasPoints) {
         map.fitBounds(bounds)
+        // Store the initial bounds to restore later
+        setInitialBounds(bounds)
       }
     }
   }, [obrasWithGeometry])
 
-  // Helper function to add geometry coordinates to bounds
-  const addGeometryToBounds = (geometry: any, bounds: google.maps.LatLngBounds) => {
-    if (!geometry || !geometry.type) return
-
-    if (geometry.type === 'LineString' && geometry.coordinates) {
-      geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
-        bounds.extend({ lat, lng })
-      })
-    } else if (geometry.type === 'MultiLineString' && geometry.coordinates) {
-      geometry.coordinates.forEach((line: [number, number][]) => {
-        line.forEach(([lng, lat]) => {
-          bounds.extend({ lat, lng })
-        })
-      })
-    } else if (geometry.type === 'GeometryCollection' && geometry.geometries) {
-      geometry.geometries.forEach((geom: any) => {
-        addGeometryToBounds(geom, bounds)
-      })
-    }
-  }
-
-
   const onUnmount = useCallback(() => {
     setMap(null)
   }, [])
+
+  // Auto-zoom to hovered obra or return to showing all obras with smooth animation
+  useEffect(() => {
+    if (!map) return
+
+    // If no obra is hovered, restore the initial view showing all obras
+    if (!hoveredObraId) {
+      if (initialBounds) {
+        // Smooth transition back to showing all obras
+        map.fitBounds(initialBounds)
+      }
+      return
+    }
+
+    // If an obra is hovered, zoom to it with smooth animation
+    const hoveredObra = obrasWithGeometry.find(o => o.id === hoveredObraId)
+    if (!hoveredObra || !hoveredObra.geometria) return
+
+    const bounds = new google.maps.LatLngBounds()
+    addGeometryToBounds(hoveredObra.geometria, bounds)
+    
+    // Add padding for better visual appearance
+    const padding = { top: 50, right: 50, bottom: 50, left: 50 }
+    
+    // Smooth pan and zoom to the hovered obra
+    map.fitBounds(bounds, padding)
+    
+    // Optionally adjust zoom to not be too close with smooth animation
+    const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+      const currentZoom = map.getZoom()
+      if (currentZoom && currentZoom > 14) {
+        map.setZoom(14)
+      }
+    })
+
+    return () => {
+      google.maps.event.removeListener(listener)
+    }
+  }, [hoveredObraId, map, obrasWithGeometry, initialBounds])
+
 
   if (!isLoaded) {
     return (
@@ -218,6 +286,7 @@ export default function ObraMapViewer({
           if (!isLineString && !isMultiLineString) return null
 
           const isSelected = obra.id === selectedObraId
+          const isHovered = obra.id === hoveredObraId
           
           // Convert GeoJSON coordinates [lng, lat] to Google Maps format {lat, lng}
           let path: { lat: number; lng: number }[] = []
@@ -234,14 +303,23 @@ export default function ObraMapViewer({
             )
           }
 
+          // Determine colors and styles with smooth transitions
+          const baseColor = '#3b82f6' // blue
+          const hoverColor = '#f97316' // orange
+          const selectedColor = '#ef4444' // red
+          
+          const currentColor = isSelected ? selectedColor : isHovered ? hoverColor : baseColor
+          const currentWeight = isSelected ? 6 : isHovered ? 5 : 3
+          const currentOpacity = (isSelected || isHovered) ? 1.0 : 0.7
+
           return (
             <Polyline
               key={`obra-${obra.id}`}
               path={path}
               options={{
-                strokeColor: isSelected ? '#ef4444' : '#3b82f6',
-                strokeOpacity: isSelected ? 1.0 : 0.7,
-                strokeWeight: isSelected ? 5 : 3,
+                strokeColor: currentColor,
+                strokeOpacity: currentOpacity,
+                strokeWeight: currentWeight,
                 clickable: true,
               }}
               onClick={(e) => {
@@ -253,24 +331,24 @@ export default function ObraMapViewer({
                 }
               }}
               onMouseOver={(e) => {
-                // Highlight on hover
+                // Smooth highlight on direct mouse hover
                 const polyline = e as any
-                if (polyline.setOptions) {
+                if (polyline.setOptions && !isSelected && !isHovered) {
                   polyline.setOptions({
-                    strokeWeight: 6,
-                    strokeColor: isSelected ? '#ef4444' : '#2563eb',
+                    strokeWeight: 7,
+                    strokeColor: '#2563eb',
                     strokeOpacity: 1.0,
                   })
                 }
               }}
               onMouseOut={(e) => {
-                // Reset style
+                // Reset to base style only if not hovered from table
                 const polyline = e as any
-                if (polyline.setOptions) {
+                if (polyline.setOptions && !isSelected && !isHovered) {
                   polyline.setOptions({
-                    strokeColor: isSelected ? '#ef4444' : '#3b82f6',
-                    strokeWeight: isSelected ? 5 : 3,
-                    strokeOpacity: isSelected ? 1.0 : 0.7,
+                    strokeColor: baseColor,
+                    strokeWeight: 3,
+                    strokeOpacity: 0.7,
                   })
                 }
               }}

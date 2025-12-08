@@ -113,6 +113,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
   const [selectedPersonType, setSelectedPersonType] = useState<'INTERNA' | 'CLIENTE'>('INTERNA')
   const [isFabOpen, setIsFabOpen] = useState(false)
+  const [hoveredObraId, setHoveredObraId] = useState<number | null>(null)
 
   const handleNonConformityClick = (nc: NonConformityMarker) => {
     console.log('Parent received NC click:', nc)
@@ -608,6 +609,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                            obras={data.obras}
                            onObraClick={handleObraClick}
                            selectedObraId={selectedObra?.id || null}
+                           hoveredObraId={hoveredObraId}
                            nonConformities={nonConformities}
                            onNonConformityClick={handleNonConformityClick}
                          />
@@ -630,6 +632,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                                  key={obra.id} 
                                  className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
                                  onClick={() => handleObraClick(obra)}
+                                 onMouseEnter={() => setHoveredObraId(obra.id)}
+                                 onMouseLeave={() => setHoveredObraId(null)}
                                >
                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.uf || '-'}</td>
                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.nome || '-'}</td>

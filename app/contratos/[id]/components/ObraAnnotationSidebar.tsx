@@ -46,12 +46,14 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
   const [newNcSeverity, setNewNcSeverity] = useState<'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA'>('BAIXA')
   const [newNcPhotos, setNewNcPhotos] = useState<File[]>([])
   const [snappedCoords, setSnappedCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [fallbackCoords, setFallbackCoords] = useState<{ lat: number; lng: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Effect to handle clickCoords
   useEffect(() => {
    if (isOpen && clickCoords && obra) {
       setShowForm(true)
+      setFallbackCoords(clickCoords)
       // Fetch KM AND coordinates from click location
       fetchKmFromCoords(clickCoords.lat, clickCoords.lng)
     }
@@ -152,8 +154,8 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
           description: newNcDesc,
           severity: newNcSeverity,
           status: 'ABERTA',
-          latitude: snappedCoords?.lat,
-          longitude: snappedCoords?.lng
+          latitude: snappedCoords?.lat || fallbackCoords?.lat,
+          longitude: snappedCoords?.lng || fallbackCoords?.lng
         })
       })
 
@@ -421,6 +423,11 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
                       required
                       value={newNcKm}
                       onChange={(e) => setNewNcKm(e.target.value)}
+                      onBlur={() => {
+                        if (newNcKm) {
+                          fetchCoordsFromKm(parseFloat(newNcKm))
+                        }
+                      }}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-lbr-primary"
                       placeholder="Ex: 125.500"
                     />
