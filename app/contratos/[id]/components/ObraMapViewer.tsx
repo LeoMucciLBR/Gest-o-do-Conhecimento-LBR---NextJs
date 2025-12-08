@@ -115,18 +115,59 @@ export default function ObraMapViewer({
     // Fit bounds to show all geometries
     if (obrasWithGeometry.length > 0) {
       const bounds = new google.maps.LatLngBounds()
+      let hasPoints = false
       
       obrasWithGeometry.forEach((obra) => {
-        if (obra.geometria?.type === 'LineString') {
-          obra.geometria.coordinates.forEach(([lng, lat]: [number, number]) => {
-            bounds.extend({ lat, lng })
+        const geom = obra.geometria
+        
+        // Handle FeatureCollection (from PostGIS ST_AsGeoJSON)
+        if (geom?.type === 'FeatureCollection' && geom.features) {
+          geom.features.forEach((feature: any) => {
+            if (feature.geometry) {
+              addGeometryToBounds(feature.geometry, bounds)
+              hasPoints = true
+            }
           })
+        }
+        // Handle Feature
+        else if (geom?.type === 'Feature' && geom.geometry) {
+          addGeometryToBounds(geom.geometry, bounds)
+          hasPoints = true
+        }
+        // Handle direct geometry
+        else if (geom) {
+          addGeometryToBounds(geom, bounds)
+          hasPoints = true
         }
       })
       
-      map.fitBounds(bounds)
+      if (hasPoints) {
+        map.fitBounds(bounds)
+      }
     }
   }, [obrasWithGeometry])
+
+  // Helper function to add geometry coordinates to bounds
+  const addGeometryToBounds = (geometry: any, bounds: google.maps.LatLngBounds) => {
+    if (!geometry || !geometry.type) return
+
+    if (geometry.type === 'LineString' && geometry.coordinates) {
+      geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
+        bounds.extend({ lat, lng })
+      })
+    } else if (geometry.type === 'MultiLineString' && geometry.coordinates) {
+      geometry.coordinates.forEach((line: [number, number][]) => {
+        line.forEach(([lng, lat]) => {
+          bounds.extend({ lat, lng })
+        })
+      })
+    } else if (geometry.type === 'GeometryCollection' && geometry.geometries) {
+      geometry.geometries.forEach((geom: any) => {
+        addGeometryToBounds(geom, bounds)
+      })
+    }
+  }
+
 
   const onUnmount = useCallback(() => {
     setMap(null)
