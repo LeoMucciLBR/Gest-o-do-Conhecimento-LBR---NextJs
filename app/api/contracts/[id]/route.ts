@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 import { Prisma } from '@prisma/client'
+import { canDeleteContract, canEditContract } from '@/lib/auth/contractAuth'
+import { logContractDeletion, logContractUpdate } from '@/lib/services/auditLogger'
 
 // Valid contract role values from Prisma enum
 const VALID_CONTRACT_ROLES = [
@@ -437,7 +439,36 @@ export async function PUT(
         throw new Error('Contrato não encontrado')
       }
 
-      // 2) Organization: get by ID or create/recycle by name (case-insensitive)
+      // 2) Check if user has permission to edit
+      const hasPermission = await canEditContract(
+        authResult.user.id,
+        authResult.user.role || 'user',
+        id
+      )
+
+      if (!hasPermission) {
+        throw new Error('Você não tem permissão para editar este contrato. Apenas o criador, editores autorizados ou administradores podem editar.')
+      }
+
+      // 3) Capture changes for audit log
+      const changes: Record<string, any> = {}
+      if (dto.name !== undefined && dto.name !== existing.name) {
+        changes.name = { from: existing.name, to: dto.name }
+      }
+      if (dto.sector !== undefined && dto.sector !== existing.sector) {
+        changes.sector = { from: existing.sector, to: dto.sector }
+      }
+      if (dto.object !== undefined && dto.object !== existing.object) {
+        changes.object = { from: existing.object, to: dto.object }
+      }
+      if (dto.status !== undefined && dto.status !== existing.status) {
+        changes.status = { from: existing.status, to: dto.status }
+      }
+      if (dto.valor !== undefined && dto.valor !== existing.valor) {
+        changes.valor = { from: existing.valor, to: dto.valor }
+      }
+
+      // 4) Organization: get by ID or create/recycle by name (case-insensitive)
       let orgId = dto.organizationId ?? null
 
       if (!orgId && dto.organization?.name) {
@@ -694,6 +725,21 @@ export async function PUT(
       return updatedContract
     })
 
+    // Log the update
+    await logContractUpdate(
+      id,
+      authResult.user.id,
+      {
+        name: dto.name,
+        sector: dto.sector,
+        object: dto.object,
+        status: dto.status,
+        valor: dto.valor
+      },
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      request.headers.get('user-agent') || undefined
+    )
+
     return NextResponse.json(contract, { status: 200 })
   } catch (error: any) {
     console.error('Contract update error:', error)
@@ -704,7 +750,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/contracts/[id] - Soft delete by setting status to Inativo
+// DELETE /api/contracts/[id] - Soft delete by setting is_deleted to true
 export async function DELETE(
   request: NextRequest,
   { params }: { params: any }
@@ -727,20 +773,50 @@ export async function DELETE(
       )
     }
 
-    // Update contract status to Inativo (soft delete)
+    // Check if already deleted
+    if (existing.is_deleted) {
+      return NextResponse.json(
+        { error: 'Contrato já foi deletado' },
+        { status: 400 }
+      )
+    }
+
+    // Check if user has permission to delete
+    const hasPermission = await canDeleteContract(
+      authResult.user.id,
+      authResult.user.role || 'user',
+      id
+    )
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Você não tem permissão para deletar este contrato. Apenas o criador ou administradores podem deletar.' },
+        { status: 403 }
+      )
+    }
+
+    // Soft delete: set is_deleted to true
     const updated = await prisma.contracts.update({
       where: { id },
-      data: { status: 'Inativo' },
+      data: { is_deleted: true },
     })
 
+    // Log the deletion
+    await logContractDeletion(
+      id,
+      authResult.user.id,
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      request.headers.get('user-agent') || undefined
+    )
+
     return NextResponse.json(
-      { message: 'Contrato desabilitado com sucesso', contract: updated },
+      { message: 'Contrato deletado com sucesso', contract: updated },
       { status: 200 }
     )
   } catch (error: any) {
     console.error('Contract delete error:', error)
     return NextResponse.json(
-      { error: error.message || 'Erro ao desabilitar contrato' },
+      { error: error.message || 'Erro ao deletar contrato' },
       { status: 400 }
     )
   }

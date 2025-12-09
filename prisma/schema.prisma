@@ -127,6 +127,10 @@ model users {
   ficha                 fichas?                 @relation(fields: [ficha_id], references: [id])
   created_softwares     contract_softwares[]    @relation("SoftwareCreator")
   software_comments     software_comments[]
+  created_contracts     contracts[]             @relation("ContractCreator")
+  contract_editors      contract_editors[]      @relation("ContractEditor")
+  editors_added         contract_editors[]      @relation("EditorAdder")
+  contract_audit_logs   contract_audit_log[]
 }
 
 model suppliers {
@@ -265,11 +269,16 @@ model contracts {
   valor               String?
   status              contract_status         @default(Ativo)
   location            String?
+  created_by          String?                 @db.Uuid
+  is_deleted          Boolean                 @default(false)
   created_at          DateTime                @default(now()) @db.Timestamptz(6)
   updated_at          DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
   documents           contract_documents[]
   participants        contract_participants[]
   organization        organizations?          @relation(fields: [organization_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  creator             users?                  @relation("ContractCreator", fields: [created_by], references: [id])
+  editors             contract_editors[]
+  audit_logs          contract_audit_log[]
   file_permissions    file_permissions[]
   measurement_files   measurement_files[]
   measurement_folders measurement_folders[]
@@ -280,6 +289,8 @@ model contracts {
 
   @@index([organization_id], map: "idx_contracts_org")
   @@index([status], map: "idx_contracts_status")
+  @@index([created_by], map: "idx_contracts_created_by")
+  @@index([is_deleted], map: "idx_contracts_is_deleted")
 }
 
 model contract_documents {
@@ -595,3 +606,44 @@ enum tipo_rodovia {
   FEDERAL
   ESTADUAL
 }
+
+model contract_editors {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id String    @db.Uuid
+  user_id     String    @db.Uuid
+  added_by    String    @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+
+  contract      contracts @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          users     @relation("ContractEditor", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  added_by_user users     @relation("EditorAdder", fields: [added_by], references: [id], onUpdate: NoAction)
+
+  @@unique([contract_id, user_id], name: "unique_contract_editor")
+  @@index([contract_id], map: "idx_contract_editors_contract")
+  @@index([user_id], map: "idx_contract_editors_user")
+  @@index([added_by], map: "idx_contract_editors_added_by")
+}
+
+model contract_audit_log {
+  id          BigInt    @id @default(autoincrement())
+  contract_id String?   @db.Uuid
+  user_id     String?   @db.Uuid
+  action      String    @db.VarChar(100)
+  entity_type String    @db.VarChar(50)
+  entity_id   String?   @db.Uuid
+  changes     Json?
+  ip_address  String?   @db.Inet
+  user_agent  String?
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+
+  contract contracts? @relation(fields: [contract_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user     users?     @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([contract_id], map: "idx_audit_log_contract")
+  @@index([user_id], map: "idx_audit_log_user")
+  @@index([action], map: "idx_audit_log_action")
+  @@index([entity_type], map: "idx_audit_log_entity_type")
+  @@index([created_at], map: "idx_audit_log_created_at")
+  @@index([contract_id, action, created_at], map: "idx_audit_log_contract_action")
+}
+

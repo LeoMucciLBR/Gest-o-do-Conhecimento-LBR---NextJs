@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 import { Prisma } from '@prisma/client'
 import type { CreateContractDto, ListContractsQuery } from '@/lib/types/contracts'
+import { logContractCreation } from '@/lib/services/auditLogger'
 
 // Valid contract role values from Prisma enum
 const VALID_CONTRACT_ROLES = [
@@ -93,6 +94,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
           data_inicio: dto.dataInicio ? new Date(dto.dataInicio) : null,
           data_fim: dto.dataFim ? new Date(dto.dataFim) : null,
           valor: dto.valor ?? null,
+          created_by: authResult.user.id, // Adicionar criador do contrato
         },
       })
 
@@ -300,6 +302,19 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
       return contract
     })
 
+    // Registrar log de auditoria
+    await logContractCreation(
+      contract.id,
+      authResult.user.id,
+      {
+        name: dto.name,
+        organization: dto.organization?.name || dto.organizationId,
+        status: dto.status || 'Ativo'
+      },
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      request.headers.get('user-agent') || undefined
+    )
+
     return NextResponse.json(contract, { status: 201 })
   } catch (error: any) {
     console.error('Contract creation error:', error)
@@ -325,7 +340,9 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page') ?? 1))
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 12)))
 
-    const where: any = {}
+    const where: any = {
+      is_deleted: false // Filtrar contratos não deletados
+    }
     if (status) where.status = status as any
     if (q?.trim()) {
       const term = q.trim()
@@ -378,16 +395,32 @@ export async function GET(request: NextRequest) {
       docsMap.get(doc.contract_id)!.push(doc)
     }
 
+    // Fetch creators for all contracts
+    const creatorIds = Array.from(
+      new Set(
+        items.map((i) => i.created_by).filter((v): v is string => !!v)
+      )
+    )
+    const creators = creatorIds.length
+      ? await prisma.users.findMany({
+          where: { id: { in: creatorIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : []
+    const creatorsMap = new Map(creators.map((c) => [c.id, c]))
+
     const enriched = items.map((i) => {
       const docs = docsMap.get(i.id) || []
       const coverImage = docs.find((d) => d.kind === 'COVER_IMAGE')
       const lamina = docs.find((d) => d.kind === 'LAMINA')
+      const creator = i.created_by ? creatorsMap.get(i.created_by) : null
       
       return {
         ...i,
         organization: i.organization_id
           ? (orgMap.get(i.organization_id) ?? null)
           : null,
+        creator: creator || null,
         image_url: coverImage?.storage_url || null,
         lamina_url: lamina?.storage_url || null,
       }

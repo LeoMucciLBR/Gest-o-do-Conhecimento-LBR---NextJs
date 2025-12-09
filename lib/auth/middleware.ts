@@ -25,6 +25,7 @@ export async function requireAuth(request: NextRequest) {
       email: session.user.email,
       name: session.user.name ?? undefined,
       photoUrl: session.user.picture_url ?? undefined,
+      role: session.user.role || 'user',
     },
   }
 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { validateSession } from '@/lib/services/sessionManager'
+import { requireAuth } from '@/lib/auth/middleware'
+import { canDeleteProductFile } from '@/lib/auth/fileAuth'
+import { logProductFileDelete } from '@/lib/services/auditLogger'
 import { prisma } from '@/lib/prisma'
 import { unlink } from 'fs/promises'
 import path from 'path'
@@ -70,20 +73,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; fileId: string }> }
 ) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('sid')?.value
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const session = await validateSession(sessionToken)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    // Check authentication
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { id: contractId, fileId } = await params
@@ -95,6 +88,20 @@ export async function DELETE(
 
     if (!file) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
+    }
+
+    // Check permission - only uploader or admin can delete
+    const hasPermission = await canDeleteProductFile(
+      authResult.user.id,
+      authResult.user.role,
+      fileId
+    )
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Você não tem permissão para deletar este arquivo. Apenas quem fez upload ou administradores podem deletar.' },
+        { status: 403 }
+      )
     }
 
     // Remover do disco
@@ -110,6 +117,16 @@ export async function DELETE(
     await prisma.product_files.delete({
       where: { id: fileId }
     })
+
+    // Log the deletion
+    await logProductFileDelete(
+      contractId,
+      fileId,
+      authResult.user.id,
+      file.filename,
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      request.headers.get('user-agent') || undefined
+    )
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
