@@ -89,16 +89,12 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user has write permission
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-    }
-
     const { id: contractId } = await params
 
     const body = await request.json()
     const { name, description, parent_folder_id } = body
 
+    // Any authenticated user can create folders
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Folder name is required' }, { status: 400 })
     }

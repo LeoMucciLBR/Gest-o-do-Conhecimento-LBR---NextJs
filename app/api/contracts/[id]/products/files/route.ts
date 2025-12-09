@@ -90,11 +90,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check permissions
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-    }
-
+    // Any authenticated user can upload files
     const { id: contractId } = await params
     const formData = await request.formData()
     const file = formData.get('file') as File | null

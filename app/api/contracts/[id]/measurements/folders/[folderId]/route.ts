@@ -107,7 +107,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const { folderId } = await params
+    const { id: contractId, folderId } = await params
 
     // Buscar pasta
     const folder = await prisma.measurement_folders.findUnique({
@@ -124,6 +124,21 @@ export async function DELETE(
 
     if (!folder) {
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 })
+    }
+
+    // Check permission
+    const { canDeleteMeasurementFolder } = await import('@/lib/auth/fileAuth')
+    const hasPermission = await canDeleteMeasurementFolder(
+      session.user.id,
+      session.user.role,
+      folderId
+    )
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Você não tem permissão para deletar esta pasta. Apenas quem criou a pasta, o criador do contrato ou administradores podem deletar.' },
+        { status: 403 }
+      )
     }
 
     // Verificar se pasta está vazia

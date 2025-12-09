@@ -101,15 +101,7 @@ export async function POST(
     console.log('Request body:', body)
     const { name, description, parent_folder_id } = body
 
-    // Check if user has write permission
-    // Allow 'Fornecedores' initialization by any user, otherwise require ADMIN/ENGENHEIRO
-    const isSystemInit = name?.trim() === 'Fornecedores' && !parent_folder_id;
-    
-    if (!isSystemInit && session.user.role !== 'ADMIN' && session.user.role !== 'ENGENHEIRO') {
-      console.log('Insufficient permissions')
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-    }
-
+    // Any authenticated user can create folders
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Folder name is required' }, { status: 400 })
     }

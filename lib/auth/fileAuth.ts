@@ -3,30 +3,40 @@ import { isAdmin } from './contractAuth'
 
 /**
  * Verifica se o usuário pode deletar uma pasta
- * Apenas o criador do contrato ou admin podem deletar pastas
+ * Apenas o criador da pasta, criador do contrato, ou admin podem deletar
  */
-export async function canDeleteFolder(
+export async function canDeleteMeasurementFolder(
   userId: string,
   userRole: string,
-  contractId: string
+  folderId: string
 ): Promise<boolean> {
   // Admin pode deletar qualquer pasta
   if (isAdmin(userRole)) {
     return true
   }
 
-  // Verifica se é o criador do contrato
-  const contract = await prisma.contracts.findUnique({
-    where: { id: contractId },
-    select: { created_by: true }
+  // Buscar pasta e contrato
+  const folder = await prisma.measurement_folders.findUnique({
+    where: { id: folderId },
+    select: { 
+      created_by: true,
+      contract: {
+        select: { created_by: true }
+      }
+    }
   })
 
-  return contract?.created_by === userId
+  if (!folder) return false
+
+  // Pode deletar se:
+  // 1. É quem criou a pasta
+  // 2. É o criador do contrato
+  return folder.created_by === userId || folder.contract.created_by === userId
 }
 
 /**
  * Verifica se o usuário pode deletar um arquivo (medições)
- * Apenas quem fez o upload do arquivo ou admin podem deletar
+ * Apenas quem fez o upload do arquivo, criador do contrato, ou admin podem deletar
  */
 export async function canDeleteMeasurementFile(
   userId: string,
@@ -38,18 +48,61 @@ export async function canDeleteMeasurementFile(
     return true
   }
 
-  // Verifica se o usuário é quem fez o upload
+  // Buscar arquivo e contrato
   const file = await prisma.measurement_files.findUnique({
     where: { id: fileId },
-    select: { uploaded_by: true }
+    select: { 
+      uploaded_by: true,
+      contract: {
+        select: { created_by: true }
+      }
+    }
   })
 
-  return file?.uploaded_by === userId
+  if (!file) return false
+
+  // Pode deletar se:
+  // 1. É quem fez o upload
+  // 2. É o criador do contrato
+  return file.uploaded_by === userId || file.contract.created_by === userId
+}
+
+/**
+ * Verifica se o usuário pode deletar uma pasta de produtos
+ * Apenas o criador da pasta, criador do contrato, ou admin podem deletar
+ */
+export async function canDeleteProductFolder(
+  userId: string,
+  userRole: string,
+  folderId: string
+): Promise<boolean> {
+  // Admin pode deletar qualquer pasta
+  if (isAdmin(userRole)) {
+    return true
+  }
+
+  // Buscar pasta e contrato
+  const folder = await prisma.product_folders.findUnique({
+    where: { id: folderId },
+    select: { 
+      created_by: true,
+      contract: {
+        select: { created_by: true }
+      }
+    }
+  })
+
+  if (!folder) return false
+
+  // Pode deletar se:
+  // 1. É quem criou a pasta
+  // 2. É o criador do contrato
+  return folder.created_by === userId || folder.contract.created_by === userId
 }
 
 /**
  * Verifica se o usuário pode deletar um arquivo (produtos)
- * Apenas quem fez o upload do arquivo ou admin podem deletar
+ * Apenas quem fez o upload, criador do contrato, ou admin podem deletar
  */
 export async function canDeleteProductFile(
   userId: string,
@@ -61,13 +114,23 @@ export async function canDeleteProductFile(
     return true
   }
 
-  // Verifica se o usuário é quem fez o upload
+  // Buscar arquivo e contrato
   const file = await prisma.product_files.findUnique({
     where: { id: fileId },
-    select: { uploaded_by: true }
+    select: { 
+      uploaded_by: true,
+      contract: {
+        select: { created_by: true }
+      }
+    }
   })
 
-  return file?.uploaded_by === userId
+  if (!file) return false
+
+  // Pode deletar se:
+  // 1. É quem fez o upload
+  // 2. É o criador do contrato
+  return file.uploaded_by === userId || file.contract.created_by === userId
 }
 
 /**

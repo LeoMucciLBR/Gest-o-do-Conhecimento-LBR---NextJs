@@ -18,16 +18,28 @@ type ApiContract = {
   image_url?: string | null
   lamina_url?: string | null
   organization?: { id: string; name: string | null } | null
+  creator?: {
+    id: string
+    name: string
+    email: string
+  } | null
 }
 
 function mapToUi(api: ApiContract): UiContract {
   return {
     id: api.id,
-    nome: api.name ?? '',
-    objeto: api.object ?? '',
-    nomeContrato: api.organization?.name ?? '',
+    name: api.name ?? '',
+    organization: api.organization ? {
+      id: api.organization.id,
+      name: api.organization.name ?? ''
+    } : null,
     status: api.status,
-    imagemUrl: api.image_url ?? api.lamina_url ?? null,
+    data_inicio: null,
+    data_fim: null,
+    valor: null,
+    image_url: api.image_url ?? api.lamina_url ?? null,
+    object: api.object ?? '',
+    creator: api.creator || null,
   }
 }
 
@@ -38,6 +50,7 @@ export default function Contratos() {
   const [loading, setLoading] = useState<boolean>(true)
   const [err, setErr] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>()
 
   useEffect(() => {
     let cancel = false
@@ -68,7 +81,7 @@ export default function Contratos() {
         const mapped = (list as ApiContract[])
           .map(mapToUi)
           .filter((c) => c.status === 'Ativo')
-          .sort((a, b) => a.nome.localeCompare(b.nome))
+          .sort((a, b) => a.name.localeCompare(b.name))
 
         if (!cancel) setItems(mapped)
       } catch (e: any) {
@@ -84,12 +97,27 @@ export default function Contratos() {
     }
   }, [searchTerm])
 
+  // Get current user from session
+  useEffect(() => {
+    async function getUser() {
+      try {
+        const session: any = await apiFetch('/auth/session')
+        if (session?.user?.id) {
+          setCurrentUserId(session.user.id)
+        }
+      } catch (e) {
+        console.error('Failed to get session:', e)
+      }
+    }
+    getUser()
+  }, [])
+
   const filteredContracts = items
 
   const cardsToRender = useMemo(() => {
     if (searchTerm.trim()) {
       return filteredContracts.map((c) => (
-        <ContractCard key={c.id} contract={c} />
+        <ContractCard key={c.id} contract={c} currentUserId={currentUserId} />
       ))
     }
     return [
@@ -97,9 +125,9 @@ export default function Contratos() {
         key="add"
         onClick={() => router.push('/engenharia/cadastrocontratos')}
       />,
-      ...filteredContracts.map((c) => <ContractCard key={c.id} contract={c} />),
+      ...filteredContracts.map((c) => <ContractCard key={c.id} contract={c} currentUserId={currentUserId} />),
     ]
-  }, [filteredContracts, searchTerm, router])
+  }, [filteredContracts, searchTerm, router, currentUserId])
 
   return (
     <div className="relative text-center duration-300 ease-in-out">
@@ -134,7 +162,7 @@ export default function Contratos() {
         {!loading && !err && (
           <>
             {filteredContracts.length > 0 || !searchTerm.trim() ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 md:gap-x-8 gap-y-12 pt-12 px-4 animate-in fade-in duration-300">
                 {cardsToRender}
               </div>
             ) : (

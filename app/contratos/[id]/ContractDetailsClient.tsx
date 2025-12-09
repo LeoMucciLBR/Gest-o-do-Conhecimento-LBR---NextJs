@@ -27,6 +27,7 @@ import {
   ArrowRight,
   List,
   Plus,
+  Clock,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { apiFetch } from '@/lib/api/api'
@@ -38,6 +39,8 @@ import MeasurementExplorer from './measurements/components/MeasurementExplorer'
 import ProductExplorer from './products/components/ProductExplorer'
 import SoftwareExplorer from './software/components/SoftwareExplorer'
 import FichaModal from '@/components/modals/FichaModal'
+import EditorsManager from './components/EditorsManager'
+import AuditLogViewer from './components/AuditLogViewer'
 
 type Contract = {
   id: string
@@ -53,6 +56,7 @@ type Contract = {
   data_inicio: string | null
   data_fim: string | null
   characteristics: string | null
+  created_by?: string | null
 }
 
 type Organization = {
@@ -119,6 +123,11 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [mapModalType, setMapModalType] = useState<'CLIENTE' | 'LBR' | 'OBRA' | 'OBRA_LOCATION' | null>(null)
   const [mapModalAddress, setMapModalAddress] = useState<string | null>(null)
+  const [canManageEditors, setCanManageEditors] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [editorsModalOpen, setEditorsModalOpen] = useState(false)
+  const [auditLogOpen, setAuditLogOpen] = useState(false)
 
   const handleNonConformityClick = (nc: NonConformityMarker) => {
     console.log('Parent received NC click:', nc)
@@ -170,6 +179,45 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
         setError(null)
         const result = await apiFetch<ContractDetails>(`/contracts/${contractId}`)
         if (!cancelled) setData(result)
+
+        // Get current user and check permissions
+        try {
+          const session: any = await apiFetch('/auth/session')
+          if (!cancelled && session?.user) {
+            setCurrentUserId(session.user.id)
+            
+            // Check if user is creator or admin
+            const isCreator = result.contract.created_by === session.user.id
+            const isAdmin = session.user.role === 'ADMIN'
+            
+            // Check if user is an editor
+            const editorsData = await apiFetch<any>(`/contracts/${contractId}/editors`)
+            const isEditor = editorsData.editors?.some((e: any) => e.user.id === session.user.id) || false
+            
+            // User can manage editors if they are the creator or an admin
+            const canManage = isCreator || isAdmin
+            
+            // User can edit if they are creator, editor, or admin
+            const canEditContract = isCreator || isEditor || isAdmin
+            
+            console.log('🔐 Permission Check:', {
+              sessionUserId: session.user.id,
+              contractCreatedBy: result.contract.created_by,
+              isCreator,
+              isEditor,
+              isAdmin,
+              canManage,
+              canEdit: canEditContract
+            })
+            
+            setCanManageEditors(canManage)
+            setCanEdit(canEditContract)
+          } else {
+            console.warn('⚠️ No session found')
+          }
+        } catch (e) {
+          console.error('❌ Error checking permissions:', e)
+        }
 
         // Fetch non-conformities
         try {
@@ -308,17 +356,43 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 <div className="h-1 bg-gradient-to-r from-lbr-primary via-secondary to-accent rounded-full animate-in slide-in-from-left duration-700 mx-auto w-full" />
               </div>
 
-              {/* Edit Button - Absolute Right */}
-              <div className="absolute right-0 z-20">
+              {/* Buttons - Absolute Right */}
+              <div className="absolute right-0 z-20 flex items-center gap-2">
+                {canManageEditors && (
+                  <button
+                    type="button"
+                    onClick={() => setEditorsModalOpen(true)}
+                    className="group hidden sm:flex items-center justify-center h-12 w-12 rounded-full bg-green-600 text-white shadow-lg border border-transparent overflow-hidden transition-all duration-300 hover:w-44 hover:bg-green-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-green-600/50"
+                    aria-label="Gerenciar Editores"
+                  >
+                    <Users className="w-6 h-6 flex-shrink-0" />
+                    <span className="ml-0 text-sm font-semibold opacity-0 max-w-0 transition-all duration-300 group-hover:opacity-100 group-hover:max-w-xs group-hover:ml-2 whitespace-nowrap">
+                      Editores
+                    </span>
+                  </button>
+                )}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/engenharia/cadastrocontratos/${contractId}`)}
+                    className="group hidden sm:flex items-center justify-center h-12 w-12 rounded-full bg-[#2f4982] text-white shadow-lg border border-transparent overflow-hidden transition-all duration-300 hover:w-32 hover:bg-[#263d69] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#2f4982]/50"
+                    aria-label="Editar"
+                  >
+                    <Edit className="w-6 h-6 flex-shrink-0" />
+                    <span className="ml-0 text-sm font-semibold opacity-0 max-w-0 transition-all duration-300 group-hover:opacity-100 group-hover:max-w-xs group-hover:ml-2 whitespace-nowrap">
+                      Editar
+                    </span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => router.push(`/engenharia/cadastrocontratos/${contractId}`)}
-                  className="group hidden sm:flex items-center justify-center h-12 w-12 rounded-full bg-[#2f4982] text-white shadow-lg border border-transparent overflow-hidden transition-all duration-300 hover:w-32 hover:bg-[#263d69] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#2f4982]/50"
-                  aria-label="Editar"
+                  onClick={() => setAuditLogOpen(true)}
+                  className="group hidden sm:flex items-center justify-center h-12 w-12 rounded-full bg-purple-600 text-white shadow-lg border border-transparent overflow-hidden transition-all duration-300 hover:w-40 hover:bg-purple-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-600/50"
+                  aria-label="Histórico"
                 >
-                  <Edit className="w-6 h-6 flex-shrink-0" />
+                  <Clock className="w-6 h-6 flex-shrink-0" />
                   <span className="ml-0 text-sm font-semibold opacity-0 max-w-0 transition-all duration-300 group-hover:opacity-100 group-hover:max-w-xs group-hover:ml-2 whitespace-nowrap">
-                    Editar
+                    Histórico
                   </span>
                 </button>
               </div>
@@ -832,51 +906,82 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
         defaultTipo={selectedPersonType}
       />
 
-      {/* Mobile Action FAB */}
-      <div className="fixed bottom-6 left-6 z-50 sm:hidden flex flex-col-reverse items-start gap-4">
-        {/* Main Button */}
-        <button
-          onClick={() => setIsFabOpen(!isFabOpen)}
-          className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white transition-all duration-300 ${
-            isFabOpen ? 'bg-red-500 rotate-45' : 'bg-[#2f4982]'
-          }`}
-        >
-          <Plus className="w-8 h-8" />
-        </button>
+      {/* Mobile Action FAB - Only show if user can edit or manage editors */}
+      {(canEdit || canManageEditors) && (
+        <div className="fixed bottom-6 left-6 z-50 sm:hidden flex flex-col-reverse items-start gap-4">
+          {/* Main Button */}
+          <button
+            onClick={() => setIsFabOpen(!isFabOpen)}
+            className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white transition-all duration-300 ${
+              isFabOpen ? 'bg-red-500 rotate-45' : 'bg-[#2f4982]'
+            }`}
+          >
+            <Plus className="w-8 h-8" />
+          </button>
 
-        {/* Menu Items */}
-        <AnimatePresence>
-          {isFabOpen && (
-            <>
-              <motion.button
-                initial={{ opacity: 0, x: -20, scale: 0.8 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -20, scale: 0.8 }}
-                transition={{ delay: 0.05 }}
-                onClick={() => router.push(`/engenharia/cadastrocontratos/${contractId}`)}
-                className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-700"
-              >
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
-                  <Edit className="w-5 h-5" />
-                </div>
-                <span className="font-bold text-slate-700 dark:text-gray-200">Editar</span>
-              </motion.button>
+          {/* Menu Items */}
+          <AnimatePresence>
+            {isFabOpen && (
+              <>
+                {canEdit && (
+                  <motion.button
+                    initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -20, scale: 0.8 }}
+                    transition={{ delay: 0.05 }}
+                    onClick={() => {
+                      router.push(`/engenharia/cadastrocontratos/${contractId}`)
+                      setIsFabOpen(false)
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-700"
+                  >
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                      <Edit className="w-5 h-5" />
+                    </div>
+                    <span className="font-bold text-slate-700 dark:text-gray-200">Editar</span>
+                  </motion.button>
+                )}
 
-              <motion.button
-                initial={{ opacity: 0, x: -20, scale: 0.8 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -20, scale: 0.8 }}
-                className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-700"
-              >
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400">
-                  <Share2 className="w-5 h-5" />
-                </div>
-                <span className="font-bold text-slate-700 dark:text-gray-200">Compartilhar</span>
-              </motion.button>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
+                {canManageEditors && (
+                  <motion.button
+                    initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -20, scale: 0.8 }}
+                    transition={{ delay: canEdit ? 0.1 : 0.05 }}
+                    onClick={() => {
+                      setEditorsModalOpen(true)
+                      setIsFabOpen(false)
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-700"
+                  >
+                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <span className="font-bold text-slate-700 dark:text-gray-200">Editores</span>
+                  </motion.button>
+                )}
+
+                <motion.button
+                  initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -20, scale: 0.8 }}
+                  transition={{ delay: canManageEditors && canEdit ? 0.15 : canEdit || canManageEditors ? 0.1 : 0.05 }}
+                  onClick={() => {
+                    setAuditLogOpen(true)
+                    setIsFabOpen(false)
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-700"
+                >
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600 dark:text-purple-400">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <span className="font-bold text-slate-700 dark:text-gray-200">Histórico</span>
+                </motion.button>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
     </div>
       {/* Generic Map Modal */}
@@ -950,6 +1055,20 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Editors Manager Modal */}
+      <EditorsManager 
+        contractId={contractId} 
+        isOpen={editorsModalOpen} 
+        onClose={() => setEditorsModalOpen(false)} 
+      />
+
+      {/* Audit Log Viewer */}
+      <AuditLogViewer 
+        contractId={contractId}
+        isOpen={auditLogOpen}
+        onClose={() => setAuditLogOpen(false)}
+      />
     </>
   )
 }

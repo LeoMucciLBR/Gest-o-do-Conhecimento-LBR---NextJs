@@ -443,13 +443,16 @@ export default function MeasurementExplorer({ contractId, contractName }: Measur
         method: 'DELETE'
       })
 
-      if (!res.ok) throw new Error('Erro ao excluir arquivo')
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Erro ao excluir arquivo')
+      }
 
       toast.success('Arquivo excluído com sucesso')
       loadFolderContents()
       if (previewFile?.id === file.id) setPreviewFile(null)
-    } catch (error) {
-      toast.error('Erro ao excluir arquivo')
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao excluir arquivo')
     }
   }
 

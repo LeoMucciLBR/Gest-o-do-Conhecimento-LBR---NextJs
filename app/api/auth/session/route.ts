@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const { user } = result
 
     return NextResponse.json({
-      users: {
+      user: {
         id: user.id,
         email: user.email,
         name: user.name ?? undefined,

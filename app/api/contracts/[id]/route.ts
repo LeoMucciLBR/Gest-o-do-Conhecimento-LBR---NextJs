@@ -432,6 +432,9 @@ export async function PUT(
 
     console.log('UPDATE /contracts/[id] payload =', JSON.stringify(dto))
 
+    // Declare changes object outside transaction so it's accessible for audit log
+    const changes: Record<string, any> = {}
+
     const contract = await prisma.$transaction(async (tx) => {
       // 1) Check if contract exists
       const existing = await tx.contracts.findUnique({ where: { id } })
@@ -451,7 +454,6 @@ export async function PUT(
       }
 
       // 3) Capture changes for audit log
-      const changes: Record<string, any> = {}
       if (dto.name !== undefined && dto.name !== existing.name) {
         changes.name = { from: existing.name, to: dto.name }
       }
@@ -725,20 +727,27 @@ export async function PUT(
       return updatedContract
     })
 
-    // Log the update
-    await logContractUpdate(
-      id,
-      authResult.user.id,
-      {
-        name: dto.name,
-        sector: dto.sector,
-        object: dto.object,
-        status: dto.status,
-        valor: dto.valor
-      },
-      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
-      request.headers.get('user-agent') || undefined
-    )
+    // Log the update - only log if there are changes
+    if (Object.keys(changes).length > 0) {
+      // Transform changes to before/after format
+      const before: Record<string, any> = {}
+      const after: Record<string, any> = {}
+      
+      for (const [key, value] of Object.entries(changes)) {
+        if (value && typeof value === 'object' && 'from' in value && 'to' in value) {
+          before[key] = value.from
+          after[key] = value.to
+        }
+      }
+
+      await logContractUpdate(
+        id,
+        authResult.user.id,
+        { before, after },
+        request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+        request.headers.get('user-agent') || undefined
+      )
+    }
 
     return NextResponse.json(contract, { status: 200 })
   } catch (error: any) {
