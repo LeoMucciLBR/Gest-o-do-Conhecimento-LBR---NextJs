@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Search, Loader2, User, X } from 'lucide-react'
 import { toast } from 'sonner'
-import Avatar from '@/components/ui/Avatar' // Assuming we have an Avatar component, or I'll use a placeholder
 
 interface User {
   id: string

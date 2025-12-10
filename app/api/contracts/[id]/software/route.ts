@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 
 // GET /api/contracts/[id]/software - List software for contract
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { id } = await params
@@ -56,13 +56,13 @@ export async function GET(
 
 // POST /api/contracts/[id]/software - Create new software
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { id } = await params
@@ -81,7 +81,7 @@ export async function POST(
         main_features: main_features || null,
         provider_id: provider_id || null,
         link: link || null,
-        created_by: session.user.id,
+        created_by: authResult.user.id,
       },
       include: {
         provider: true,

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Shield } from 'lucide-react'
 
 type Session = {
-  users: {
+  user: {
     id: string
     name: string
     email: string
@@ -37,7 +37,7 @@ export default function AdminLayout({
       const data = await res.json()
       
       // Check if user has admin role (case insensitive)
-      const userRole = data.users?.role?.toUpperCase()
+      const userRole = data.user?.role?.toUpperCase()
       if (userRole !== 'ADMIN') {
         router.push('/portal')
         return
@@ -63,7 +63,7 @@ export default function AdminLayout({
     )
   }
 
-  if (!session || session.users?.role?.toUpperCase() !== 'ADMIN') {
+  if (!session || session.user?.role?.toUpperCase() !== 'ADMIN') {
     return null
   }
 
@@ -74,7 +74,7 @@ export default function AdminLayout({
         <div className="max-w-7xl mx-auto flex items-center gap-3">
           <Shield className="w-5 h-5" />
           <span className="font-semibold">Área Administrativa</span>
-          <span className="ml-auto text-sm opacity-90">{session.users.name}</span>
+          <span className="ml-auto text-sm opacity-90">{session.user.name}</span>
         </div>
       </div>
 

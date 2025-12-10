@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 
 // GET /api/software/providers - List all providers
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { searchParams } = new URL(request.url)
@@ -35,11 +35,11 @@ export async function GET(request: Request) {
 }
 
 // POST /api/software/providers - Create new provider
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const body = await request.json()

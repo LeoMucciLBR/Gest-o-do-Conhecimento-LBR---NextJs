@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 
 // GET /api/contracts/[id]/software/[softwareId] - Get software details
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { softwareId: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { softwareId } = await params
@@ -59,13 +59,13 @@ export async function GET(
 
 // PUT /api/contracts/[id]/software/[softwareId] - Update software
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { softwareId: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { softwareId } = await params
@@ -106,13 +106,13 @@ export async function PUT(
 
 // DELETE /api/contracts/[id]/software/[softwareId] - Delete software
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { softwareId: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { softwareId } = await params

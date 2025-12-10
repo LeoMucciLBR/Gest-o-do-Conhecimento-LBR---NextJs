@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/middleware'
 
 // GET /api/contracts/[id]/software/[softwareId]/comments - List comments
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { softwareId: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { softwareId } = await params
@@ -42,13 +42,13 @@ export async function GET(
 
 // POST /api/contracts/[id]/software/[softwareId]/comments - Add comment
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { softwareId: string } }
 ) {
   try {
-    const session = await requireAuth()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     const { softwareId } = await params
@@ -62,7 +62,7 @@ export async function POST(
     const comment = await prisma.software_comments.create({
       data: {
         software_id: softwareId,
-        user_id: session.user.id,
+        user_id: authResult.user.id,
         comment: commentText.trim(),
       },
       include: {

@@ -60,7 +60,7 @@ async function createAuditLog(data: AuditLogData) {
         action: data.action,
         entity_type: data.entityType,
         entity_id: data.entityId || null,
-        changes: data.changes || null,
+        changes: data.changes ? (data.changes as any) : null,
         ip_address: data.ipAddress || null,
         user_agent: data.userAgent || null,
       }

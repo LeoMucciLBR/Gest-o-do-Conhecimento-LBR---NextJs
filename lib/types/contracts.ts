@@ -44,6 +44,9 @@ export interface CreateContractDto {
   lote5?: string | null
   status?: ContractStatus
   location?: string | null
+  dataInicio?: string | null  // ISO string date
+  dataFim?: string | null      // ISO string date
+  valor?: string | null
   organizationId?: string | null
   organization?: OrgDto
   participants?: ParticipantDto[]
