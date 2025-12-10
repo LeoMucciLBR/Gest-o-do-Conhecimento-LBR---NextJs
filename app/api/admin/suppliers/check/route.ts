@@ -24,11 +24,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
-    const supplier = await prisma.suppliers.findFirst({
-      where: { user_id: userId }
+    // Note: Suppliers table doesn't have a user_id field
+    // Instead, it has: id, name, email, phone, cnpj, created_at, updated_at
+    // This endpoint may need to be redesigned to match actual schema
+    return NextResponse.json({ 
+      exists: false, 
+      supplier: null,
+      message: 'Suppliers table does not have user_id field - endpoint needs redesign' 
     })
-
-    return NextResponse.json({ exists: !!supplier, supplier })
   } catch (error: any) {
     console.error('Error checking supplier:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

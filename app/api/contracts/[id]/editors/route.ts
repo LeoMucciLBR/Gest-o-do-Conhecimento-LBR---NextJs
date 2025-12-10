@@ -7,7 +7,7 @@ import { logEditorAdded, logEditorRemoved } from '@/lib/services/auditLogger'
 // GET /api/contracts/[id]/editors - List contract editors
 export async function GET(
   request: NextRequest,
-  { params }: { params: any }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check authentication
   const authResult = await requireAuth(request)
@@ -60,7 +60,7 @@ export async function GET(
 // POST /api/contracts/[id]/editors - Add editor to contract
 export async function POST(
   request: NextRequest,
-  { params }: { params: any }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check authentication
   const authResult = await requireAuth(request)
@@ -179,7 +179,7 @@ export async function POST(
 // DELETE /api/contracts/[id]/editors - Remove editor from contract
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: any }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check authentication
   const authResult = await requireAuth(request)

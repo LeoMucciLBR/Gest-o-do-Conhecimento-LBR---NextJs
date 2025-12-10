@@ -46,7 +46,7 @@ function mapToContractRole(role: string | undefined | null): string {
 // GET /api/contracts/[id] - Get single contract with details
 export async function GET(
   request: NextRequest,
-  { params }: { params: any }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check authentication
   const authResult = await requireAuth(request)
@@ -418,7 +418,7 @@ export async function GET(
 // PUT /api/contracts/[id] - Update existing contract
 export async function PUT(
   request: NextRequest,
-  { params }: { params: any }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check authentication
   const authResult = await requireAuth(request)
@@ -762,7 +762,7 @@ export async function PUT(
 // DELETE /api/contracts/[id] - Soft delete by setting is_deleted to true
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: any }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check authentication
   const authResult = await requireAuth(request)

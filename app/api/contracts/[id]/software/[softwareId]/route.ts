@@ -5,7 +5,7 @@ import { requireAuth } from '@/lib/auth/middleware'
 // GET /api/contracts/[id]/software/[softwareId] - Get software details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { softwareId: string } }
+  { params }: { params: Promise<{ id: string; softwareId: string }> }
 ) {
   try {
     const authResult = await requireAuth(request)
@@ -60,7 +60,7 @@ export async function GET(
 // PUT /api/contracts/[id]/software/[softwareId] - Update software
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { softwareId: string } }
+  { params }: { params: Promise<{ id: string; softwareId: string }> }
 ) {
   try {
     const authResult = await requireAuth(request)
@@ -107,7 +107,7 @@ export async function PUT(
 // DELETE /api/contracts/[id]/software/[softwareId] - Delete software
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { softwareId: string } }
+  { params }: { params: Promise<{ id: string; softwareId: string }> }
 ) {
   try {
     const authResult = await requireAuth(request)

@@ -5,7 +5,7 @@ import { requireAuth } from '@/lib/auth/middleware'
 // GET /api/contracts/[id]/software - List software for contract
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requireAuth(request)
@@ -57,7 +57,7 @@ export async function GET(
 // POST /api/contracts/[id]/software - Create new software
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requireAuth(request)
