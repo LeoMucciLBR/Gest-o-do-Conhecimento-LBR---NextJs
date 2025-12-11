@@ -130,7 +130,7 @@ export default function UsersManagementPage() {
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'USER' })
+  const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'USER', area: '' })
   const [creating, setCreating] = useState(false)
 
   const handleCreateUser = async () => {
@@ -149,7 +149,7 @@ export default function UsersManagementPage() {
 
       await fetchUsers()
       setIsCreateModalOpen(false)
-      setCreateForm({ name: '', email: '', password: '', role: 'USER' })
+      setCreateForm({ name: '', email: '', password: '', role: 'USER', area: '' })
       alert('Usuário criado com sucesso!')
     } catch (error: any) {
       console.error('Error creating user:', error)
@@ -437,6 +437,26 @@ export default function UsersManagementPage() {
                   <option value="USER">Usuário (USER)</option>
                   <option value="MANAGER">Gerente (MANAGER)</option>
                   <option value="ADMIN">Administrador (ADMIN)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                  Área
+                </label>
+                <select
+                  value={createForm.area}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, area: e.target.value }))}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-lbr-primary"
+                >
+                  <option value="">Selecione uma área (opcional)</option>
+                  <option value="ENGENHARIA">Engenharia</option>
+                  <option value="COMERCIAL">Comercial</option>
+                  <option value="FINANCEIRO">Financeiro</option>
+                  <option value="ADMINISTRATIVO">Administrativo</option>
+                  <option value="TI">TI</option>
+                  <option value="RH">RH</option>
+                  <option value="DIRETORIA">Diretoria</option>
                 </select>
               </div>
             </div>

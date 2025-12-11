@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSession } from '@/lib/services/sessionManager'
 import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,12 +20,19 @@ export async function GET(request: NextRequest) {
 
     const { user } = result
 
+    // Load ficha to get area
+    const userWithFicha = await prisma.users.findUnique({
+      where: { id: user.id },
+      include: { ficha: true }
+    })
+
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
         name: user.name ?? undefined,
         role: user.role,
+        area: userWithFicha?.ficha?.area ?? undefined,
         photoUrl: user.picture_url ?? undefined,
       },
     })

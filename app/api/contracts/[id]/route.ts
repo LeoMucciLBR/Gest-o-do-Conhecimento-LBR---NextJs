@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth/middleware'
 import { Prisma } from '@prisma/client'
 import { canDeleteContract, canEditContract } from '@/lib/auth/contractAuth'
 import { logContractDeletion, logContractUpdate } from '@/lib/services/auditLogger'
+import { createContractNotifications } from '@/lib/services/contractNotifications'
 
 // Valid contract role values from Prisma enum
 const VALID_CONTRACT_ROLES = [
@@ -747,6 +748,9 @@ export async function PUT(
         request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
         request.headers.get('user-agent') || undefined
       )
+
+      // Criar notificações para criador e editores (exceto quem alterou)
+      await createContractNotifications(id, authResult.user.id, 'UPDATE')
     }
 
     return NextResponse.json(contract, { status: 200 })

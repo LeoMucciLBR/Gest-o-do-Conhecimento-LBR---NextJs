@@ -96,7 +96,7 @@ function LoginForm() {
 
       // limpa apenas o campo senha e redireciona para a URL original
       reset({ email: data.email, password: "" });
-      const from = searchParams.get('from') || '/portal';
+      const from = searchParams.get('from') || '/';
       router.replace(from);
       router.refresh();
     } catch (e: any) {
@@ -113,7 +113,7 @@ function LoginForm() {
   const handlePasswordChanged = () => {
     setShowChangePasswordModal(false);
     // Login automático já foi feito pelo backend na troca de senha
-    const from = searchParams.get('from') || '/portal';
+    const from = searchParams.get('from') || '/';
     router.replace(from);
     router.refresh();
   };

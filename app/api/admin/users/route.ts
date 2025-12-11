@@ -109,11 +109,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, password, role } = body
+    const { name, email, password, role, area } = body
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
-        { error: 'Todos os campos são obrigatórios' },
+        { error: 'Todos os campos obrigatórios: name, email, password, role' },
         { status: 400 }
       )
     }
@@ -130,29 +130,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user
-    const user = await prisma.users.create({
-      data: {
-        name,
-        email,
-        role,
-        is_active: true
-      }
-    })
-
     // Create password hash
     const { hashPassword } = await import('@/lib/auth/password')
     const passwordHash = await hashPassword(password)
 
-    // Save password
-    await prisma.user_passwords.create({
-      data: {
-        user_id: user.id,
-        password_hash: passwordHash
-      }
+    // Create user and ficha in transaction
+    const { nanoid } = await import('nanoid')
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create ficha first
+      const fichaId = nanoid()
+      const ficha = await tx.fichas.create({
+        data: {
+          id: fichaId,
+          nome: name,
+          email: email.toLowerCase().trim(),
+          area: area || null,
+          tipo: 'INTERNA',
+        }
+      })
+
+      // 2. Create user linked to ficha
+      const user = await tx.users.create({
+        data: {
+          name,
+          email,
+          role,
+          ficha_id: ficha.id,
+          is_active: true
+        }
+      })
+
+      // 3. Create password
+      await tx.user_passwords.create({
+        data: {
+          user_id: user.id,
+          password_hash: passwordHash,
+          is_first_login: true,
+        }
+      })
+
+      return { user, ficha }
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json(result.user)
   } catch (error: any) {
     console.error('Error creating user:', error)
     return NextResponse.json(

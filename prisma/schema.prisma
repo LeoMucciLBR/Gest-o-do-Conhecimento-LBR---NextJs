@@ -104,10 +104,14 @@ model users {
   ficha_id          String?   @unique
 
   // Security fields
-  failed_login_attempts Int       @default(0)
-  locked_until          DateTime? @db.Timestamptz(6)
-  last_login_at         DateTime? @db.Timestamptz(6)
-  last_login_ip         String?   @db.Inet
+  failed_login_attempts     Int       @default(0)
+  locked_until              DateTime? @db.Timestamptz(6)
+  last_login_at             DateTime? @db.Timestamptz(6)
+  last_login_ip             String?   @db.Inet
+  last_login_country        String?
+  trusted_ips               String[]  @default([])
+  allow_international_access Boolean  @default(false)
+  security_alerts_enabled   Boolean   @default(true)
 
   auth_identities       auth_identities[]
   email_verifications   email_verifications[]
@@ -131,6 +135,7 @@ model users {
   contract_editors      contract_editors[]      @relation("ContractEditor")
   editors_added         contract_editors[]      @relation("EditorAdder")
   contract_audit_logs   contract_audit_log[]
+  contract_notifications contract_notifications[]
 }
 
 model suppliers {
@@ -224,11 +229,13 @@ model fichas {
   updated_at            DateTime     @default(now()) @updatedAt
   tipo                  ficha_type   @default(INTERNA)
   cargo_cliente         client_role?
+  area                  area_type?
   users                 users?
 
   @@index([email])
   @@index([nome])
   @@index([profissao])
+  @@index([area])
 }
 
 model organizations {
@@ -286,6 +293,7 @@ model contracts {
   product_files       product_files[]
   product_folders     product_folders[]
   contract_softwares  contract_softwares[]
+  notifications       contract_notifications[]
 
   @@index([organization_id], map: "idx_contracts_org")
   @@index([status], map: "idx_contracts_status")
@@ -645,5 +653,121 @@ model contract_audit_log {
   @@index([entity_type], map: "idx_audit_log_entity_type")
   @@index([created_at], map: "idx_audit_log_created_at")
   @@index([contract_id, action, created_at], map: "idx_audit_log_contract_action")
+}
+
+model contract_notifications {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id String            @db.Uuid
+  user_id     String            @db.Uuid
+  type        notification_type
+  is_read     Boolean           @default(false)
+  created_at  DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
+
+  contract contracts @relation(fields: [contract_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user     users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, is_read], map: "idx_notifications_user_read")
+  @@index([contract_id], map: "idx_notifications_contract")
+  @@index([created_at], map: "idx_notifications_created")
+}
+
+enum notification_type {
+  CONTRACT_CREATED
+  CONTRACT_UPDATED
+}
+
+enum area_type {
+  ENGENHARIA
+  COMERCIAL
+  FINANCEIRO
+  ADMINISTRATIVO
+  TI
+  RH
+  DIRETORIA
+}
+
+// ============================================
+// SECURITY SYSTEM MODELS
+// ============================================
+
+model blocked_ips {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ip_address  String    @unique @db.Inet
+  reason      String?
+  blocked_by  String?   @db.Uuid
+  blocked_at  DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at  DateTime? @db.Timestamptz(6)
+  is_active   Boolean   @default(true)
+
+  blocked_by_user users? @relation("BlockedIpBy", fields: [blocked_by], references: [id], onDelete: SetNull)
+
+  @@index([ip_address])
+  @@index([is_active])
+}
+
+model blocked_users {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  email      String
+  reason     String
+  blocked_by String?  @db.Uuid
+  blocked_at DateTime @default(now()) @db.Timestamptz(6)
+  is_active  Boolean  @default(true)
+
+  user            users  @relation("BlockedUser", fields: [user_id], references: [id], onDelete: Cascade)
+  blocked_by_user users? @relation("BlockedUserBy", fields: [blocked_by], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([email])
+}
+
+model login_attempts {
+  id           BigInt   @id @default(autoincrement())
+  email        String
+  ip_address   String   @db.Inet
+  success      Boolean  @default(false)
+  country      String?
+  city         String?
+  user_agent   String?
+  blocked      Boolean  @default(false)
+  error_reason String?
+  attempted_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([email, attempted_at])
+  @@index([ip_address, attempted_at])
+  @@index([attempted_at])
+}
+
+model security_alerts {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String    @db.Uuid
+  alert_type            String
+  ip_address            String?   @db.Inet
+  location              String?
+  user_agent            String?
+  is_read               Boolean   @default(false)
+  requires_confirmation Boolean   @default(true)
+  confirmed_at          DateTime? @db.Timestamptz(6)
+  dismissed_at          DateTime? @db.Timestamptz(6)
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+
+  user users @relation("SecurityAlerts", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+  @@index([user_id, is_read])
+}
+
+model whitelisted_ips {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ip_address  String   @unique @db.Inet
+  description String
+  added_by    String?  @db.Uuid
+  added_at    DateTime @default(now()) @db.Timestamptz(6)
+  is_active   Boolean  @default(true)
+
+  added_by_user users? @relation("WhitelistedIpBy", fields: [added_by], references: [id], onDelete: SetNull)
+
+  @@index([ip_address])
 }
 

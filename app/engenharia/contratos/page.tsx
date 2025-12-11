@@ -51,6 +51,7 @@ export default function Contratos() {
   const [err, setErr] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentUserId, setCurrentUserId] = useState<string | undefined>()
+  const [contractsWithNotifications, setContractsWithNotifications] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let cancel = false
@@ -112,6 +113,40 @@ export default function Contratos() {
     getUser()
   }, [])
 
+  // Buscar contratos com notificações não lidas
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const data: any = await apiFetch('/contracts/notifications')
+        const ids = new Set<string>(data.items.map((n: any) => n.contractId))
+        setContractsWithNotifications(ids)
+      } catch (e) {
+        console.error('Failed to fetch notifications:', e)
+      }
+    }
+    fetchNotifications()
+  }, [])
+
+  // Função para marcar notificação como lida ao clicar no card
+  const handleCardClick = async (contractId: string) => {
+    try {
+      // Marcar como lido
+      await apiFetch(`/contracts/${contractId}/mark-read`, { method: 'POST' })
+      
+      // Remover do set de notificações
+      setContractsWithNotifications(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(contractId)
+        return newSet
+      })
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e)
+    }
+    
+    // Navegar para detalhes
+    router.push(`/contratos/${contractId}`)
+  }
+
   const filteredContracts = items
 
   const cardsToRender = useMemo(() => {
@@ -122,7 +157,12 @@ export default function Contratos() {
           className="animate-in fade-in slide-in-from-bottom-4"
           style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}
         >
-          <ContractCard contract={c} currentUserId={currentUserId} />
+          <ContractCard 
+            contract={c} 
+            currentUserId={currentUserId}
+            hasNotification={contractsWithNotifications.has(c.id)}
+            onCardClick={handleCardClick}
+          />
         </div>
       ))
     }
@@ -140,11 +180,16 @@ export default function Contratos() {
           className="animate-in fade-in slide-in-from-bottom-4"
           style={{ animationDelay: `${(idx + 1) * 50}ms`, animationFillMode: 'backwards' }}
         >
-          <ContractCard contract={c} currentUserId={currentUserId} />
+          <ContractCard 
+            contract={c} 
+            currentUserId={currentUserId}
+            hasNotification={contractsWithNotifications.has(c.id)}
+            onCardClick={handleCardClick}
+          />
         </div>
       )),
     ]
-  }, [filteredContracts, searchTerm, router, currentUserId])
+  }, [filteredContracts, searchTerm, router, currentUserId, contractsWithNotifications, handleCardClick])
 
   return (
     <div className="relative text-center duration-300 ease-in-out min-h-screen">

@@ -86,6 +86,7 @@ export const Sidebar: FC<SidebarProps> = ({ sectionTitle, items, user }) => {
   const [hovered, setHovered] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -104,10 +105,31 @@ export const Sidebar: FC<SidebarProps> = ({ sectionTitle, items, user }) => {
     }
   }, [isDesktop, pinnedOpen]);
 
+  // Buscar contador de notificações
+  useEffect(() => {
+    async function fetchNotificationCount() {
+      try {
+        const response = await fetch('/api/contracts/notifications/count');
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch notification count:', error);
+      }
+    }
+
+    fetchNotificationCount();
+
+    // Polling a cada 30 segundos
+    const interval = setInterval(fetchNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const open = isDesktop ? pinnedOpen || hovered : pinnedOpen;
 
   const computedUser = useMemo(
-    () => user ?? { name: "Leonardo Mucci", email: "ADM", photoUrl: "" },
+    () => user ?? { name: "Usuário", email: "Função não definida", photoUrl: "" },
     [user]
   );
   
@@ -357,14 +379,14 @@ export const Sidebar: FC<SidebarProps> = ({ sectionTitle, items, user }) => {
                             />
                           )}
 
-                          {/* Notification badge example - apenas quando aberta */}
-                          {item.title === "Contratos" && open && (
+                          {/* Notification badge - contador dinâmico */}
+                          {item.title === "Contratos" && open && unreadCount > 0 && (
                             <motion.div
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
                               className="ml-auto w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
                             >
-                              3
+                              {unreadCount}
                             </motion.div>
                           )}
                         </div>

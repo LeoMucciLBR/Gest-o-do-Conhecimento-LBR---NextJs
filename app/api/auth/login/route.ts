@@ -97,12 +97,19 @@ export async function POST(request: NextRequest) {
       // maxAge removido para ser cookie de sessão (expira ao fechar navegador)
     })
 
+    // Load ficha to get area
+    const userWithFicha = await prisma.users.findUnique({
+      where: { id: user.id },
+      include: { ficha: true }
+    })
+
     return NextResponse.json({
       isFirstLogin: false,
       user: {
         id: user.id,
         email: user.email,
         name: user.name ?? undefined,
+        area: userWithFicha?.ficha?.area ?? undefined,
         photoUrl: user.picture_url ?? undefined,
       },
     })

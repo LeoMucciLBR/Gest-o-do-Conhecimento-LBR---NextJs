@@ -39,7 +39,7 @@ export default function AdminLayout({
       // Check if user has admin role (case insensitive)
       const userRole = data.user?.role?.toUpperCase()
       if (userRole !== 'ADMIN') {
-        router.push('/portal')
+        router.push('/')
         return
       }
 

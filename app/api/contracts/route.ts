@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth/middleware'
 import { Prisma } from '@prisma/client'
 import type { CreateContractDto, ListContractsQuery } from '@/lib/types/contracts'
 import { logContractCreation } from '@/lib/services/auditLogger'
+import { createContractNotifications } from '@/lib/services/contractNotifications'
 
 // Valid contract role values from Prisma enum
 const VALID_CONTRACT_ROLES = [
@@ -314,6 +315,9 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
       request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
       request.headers.get('user-agent') || undefined
     )
+
+    // Criar notificações para todos os usuários
+    await createContractNotifications(contract.id, authResult.user.id, 'CREATE')
 
     return NextResponse.json(contract, { status: 201 })
   } catch (error: any) {

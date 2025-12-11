@@ -3,6 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { UserCircle2, Shield, Sparkles } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 /** Mesmo modelo usado na página de lista (UiContract) */
 export type UiContract = {
@@ -25,9 +26,11 @@ export type UiContract = {
 interface ContractCardProps {
   contract: UiContract
   currentUserId?: string
+  hasNotification?: boolean
+  onCardClick?: (contractId: string) => void
 }
 
-export default function ContractCard({ contract, currentUserId }: ContractCardProps) {
+export default function ContractCard({ contract, currentUserId, hasNotification = false, onCardClick }: ContractCardProps) {
   const router = useRouter()
   const isInactive = contract.status !== 'Ativo'
   const isCreator = currentUserId && contract.creator?.id === currentUserId
@@ -37,7 +40,13 @@ export default function ContractCard({ contract, currentUserId }: ContractCardPr
   const objeto = contract.object?.trim() || '(Sem objeto)'
 
   const goToDetails = () => {
-    if (!isInactive) router.push(`/contratos/${contract.id}`)
+    if (isInactive) return
+    
+    if (onCardClick) {
+      onCardClick(contract.id)
+    } else {
+      router.push(`/contratos/${contract.id}`)
+    }
   }
 
   return (
@@ -110,6 +119,24 @@ export default function ContractCard({ contract, currentUserId }: ContractCardPr
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Badge de Notificação - Pintinho Vermelho */}
+        {hasNotification && (
+          <div className="absolute top-3 right-3 z-10">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: [0, 1.2, 1] }}
+              transition={{ duration: 0.5 }}
+              className="relative"
+            >
+              {/* Pulse animation */}
+              <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" />
+              
+              {/* Badge */}
+              <div className="relative w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-gray-800 shadow-lg" />
+            </motion.div>
           </div>
         )}
 
