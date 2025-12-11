@@ -660,14 +660,7 @@ export default function CadastroContrato() {
                 </button>
               )}
               
-              {/* Cancel Button */}
-              <button
-                type="button"
-                onClick={() => router.push('/engenharia/contratos')}
-                className="px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-2 border-slate-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 hover:text-red-600 dark:hover:text-red-400 hover:shadow-lg"
-              >
-                Cancelar
-              </button>
+
 
               {/* Delete Button - Only in Edit Mode */}
               {isEdit && (

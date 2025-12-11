@@ -3,6 +3,7 @@
 import { Plus, X, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import { ESTADOS } from '../lib/validation'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 export type ObraTipo = 'FEDERAL' | 'ESTADUAL'
 
@@ -216,68 +217,96 @@ export default function ObrasSection({
                 >
                   {/* Tipo */}
                   <td className="p-3">
-                    <select
-                      value={obra.tipo}
-                      onChange={(e) => onChangeTipo(index, e.target.value as ObraTipo)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="ESTADUAL">Estadual</option>
-                      <option value="FEDERAL">Federal</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={obra.tipo}
+                        onChange={(e) => onChangeTipo(index, e.target.value as ObraTipo)}
+                        className="w-full pl-3 pr-10 py-2.5 rounded-xl border-2 border-slate-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer appearance-none"
+                      >
+                        <option value="ESTADUAL">Estadual</option>
+                        <option value="FEDERAL">Federal</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg className="w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
                   </td>
 
                   {/* UF */}
                   <td className="p-3">
-                    <select
-                      value={obra.uf}
-                      onChange={(e) => onChangeUf(index, e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Selecione...</option>
-                      {ESTADOS.map((uf) => (
-                        <option key={uf} value={uf}>
-                          {uf}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={obra.uf}
+                        onChange={(e) => onChangeUf(index, e.target.value)}
+                        className="w-full pl-3 pr-10 py-2.5 rounded-xl border-2 border-slate-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer appearance-none"
+                      >
+                        <option value="">Selecione...</option>
+                        {ESTADOS.map((uf) => (
+                          <option key={uf} value={uf}>
+                            {uf}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg className="w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
                   </td>
 
                   {/* Rodovia */}
                   <td className="p-3">
                     {obra.tipo === 'ESTADUAL' ? (
-                      <select
-                        value={obra.rodoviaId}
-                        onChange={(e) =>
-                          onUpdateObraField(
-                            index,
-                            'rodoviaId',
-                            e.target.value ? Number(e.target.value) : ''
-                          )
-                        }
-                        disabled={!obra.uf}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                      >
-                        <option value="">Selecione...</option>
-                        {(rodoviasPorUf[obra.uf] || []).map((rod) => (
-                          <option key={rod.id} value={rod.id}>
-                            {rod.nome}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={obra.rodoviaId}
+                          onChange={(e) =>
+                            onUpdateObraField(
+                              index,
+                              'rodoviaId',
+                              e.target.value ? Number(e.target.value) : ''
+                            )
+                          }
+                          disabled={!obra.uf}
+                          className="w-full pl-3 pr-10 py-2.5 rounded-xl border-2 border-slate-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none"
+                        >
+                          <option value="">Selecione...</option>
+                          {(rodoviasPorUf[obra.uf] || []).map((rod) => (
+                            <option key={rod.id} value={rod.id}>
+                              {rod.nome}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <svg className="w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     ) : (
-                      <select
-                        value={obra.brCodigo}
-                        onChange={(e) => onUpdateObraField(index, 'brCodigo', e.target.value)}
-                        disabled={!obra.uf}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                      >
-                        <option value="">Selecione...</option>
-                        {(brsPorUf[obra.uf] || []).map((br) => (
-                          <option key={br} value={br}>
-                            BR-{br}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={obra.brCodigo}
+                          onChange={(e) => onUpdateObraField(index, 'brCodigo', e.target.value)}
+                          disabled={!obra.uf}
+                          className="w-full pl-3 pr-10 py-2.5 rounded-xl border-2 border-slate-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer appearance-none"
+                        >
+                          <option value="">Selecione...</option>
+                          {(brsPorUf[obra.uf] || []).map((br) => (
+                            <option key={br} value={br}>
+                              BR-{br}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <svg className="w-4 h-4 text-slate-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     )}
                   </td>
 
@@ -374,77 +403,47 @@ export default function ObrasSection({
 
               {/* Tipo */}
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">
-                  Tipo
-                </label>
-                <select
+                <CustomSelect
+                  label="Tipo"
                   value={obra.tipo}
-                  onChange={(e) => onChangeTipo(index, e.target.value as ObraTipo)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="ESTADUAL">Estadual</option>
-                  <option value="FEDERAL">Federal</option>
-                </select>
+                  onChange={(value) => onChangeTipo(index, value as ObraTipo)}
+                  options={[
+                    { value: 'ESTADUAL', label: 'Estadual' },
+                    { value: 'FEDERAL', label: 'Federal' },
+                  ]}
+                  placeholder="Selecione..."
+                />
               </div>
 
               {/* UF */}
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">
-                  UF
-                </label>
-                <select
+                <CustomSelect
+                  label="UF"
                   value={obra.uf}
-                  onChange={(e) => onChangeUf(index, e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Selecione...</option>
-                  {ESTADOS.map((uf) => (
-                    <option key={uf} value={uf}>
-                      {uf}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => onChangeUf(index, value)}
+                  options={ESTADOS.map(uf => ({ value: uf, label: uf }))}
+                  placeholder="Selecione..."
+                />
               </div>
 
               {/* Rodovia */}
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">
-                  Rodovia
-                </label>
                 {obra.tipo === 'ESTADUAL' ? (
-                  <select
-                    value={obra.rodoviaId}
-                    onChange={(e) =>
-                      onUpdateObraField(
-                        index,
-                        'rodoviaId',
-                        e.target.value ? Number(e.target.value) : ''
-                      )
-                    }
-                    disabled={!obra.uf}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    <option value="">Selecione...</option>
-                    {(rodoviasPorUf[obra.uf] || []).map((rod) => (
-                      <option key={rod.id} value={rod.id}>
-                        {rod.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    label="Rodovia"
+                    value={String(obra.rodoviaId)}
+                    onChange={(value) => onUpdateObraField(index, 'rodoviaId', value ? Number(value) : '')}
+                    options={(rodoviasPorUf[obra.uf] || []).map(rod => ({ value: String(rod.id), label: rod.nome }))}
+                    placeholder="Selecione..."
+                  />
                 ) : (
-                  <select
+                  <CustomSelect
+                    label="Rodovia"
                     value={obra.brCodigo}
-                    onChange={(e) => onUpdateObraField(index, 'brCodigo', e.target.value)}
-                    disabled={!obra.uf}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    <option value="">Selecione...</option>
-                    {(brsPorUf[obra.uf] || []).map((br) => (
-                      <option key={br} value={br}>
-                        BR-{br}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => onUpdateObraField(index, 'brCodigo', value)}
+                    options={(brsPorUf[obra.uf] || []).map(br => ({ value: br, label: `BR-${br}` }))}
+                    placeholder="Selecione..."
+                  />
                 )}
               </div>
 

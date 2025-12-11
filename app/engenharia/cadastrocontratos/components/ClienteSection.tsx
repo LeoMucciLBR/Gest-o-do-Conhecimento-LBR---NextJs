@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PersonSearch from '@/components/ui/PersonSearch'
 import { Briefcase, UserPlus, Trash2 } from 'lucide-react'
 import FichaModal from '@/components/modals/FichaModal'
@@ -75,13 +75,10 @@ export default function ClienteSection({
   }
 
   const handlePersonSelect = (person: any) => {
+    if (!person) return
+    
     setSelectedPerson(person)
     setSearchValue(person.full_name || person.nome)
-    
-    // Auto-add when person is selected
-    setTimeout(() => {
-      handleAddPerson(person)
-    }, 100)
   }
 
   const handleModalSuccess = (data: any) => {
@@ -129,17 +126,11 @@ export default function ClienteSection({
         </h3>
 
         <div className="space-y-4">
-          {/* Campo de Cargo - SIMPLIFICADO */}
-          <div style={{ marginBottom: '20px', position: 'relative', zIndex: 100 }}>
+          {/* Campo de Cargo */}
+          <div className="relative mb-5 z-10">
             <label 
               htmlFor="clientRole" 
-              style={{ 
-                display: 'block', 
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#334155'
-              }}
+              className="block mb-2 text-sm font-semibold text-slate-700 dark:text-gray-300"
             >
               Cargo *
             </label>
@@ -149,20 +140,9 @@ export default function ClienteSection({
               id="clientRole"
               value={currentRole}
               onChange={(e) => setCurrentRole(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder="Digite o cargo (ex: Gerente de Projetos)"
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                border: '2px solid #cbd5e1',
-                borderRadius: '8px',
-                backgroundColor: '#ffffff',
-                color: '#1e293b',
-                outline: 'none',
-                boxSizing: 'border-box',
-                position: 'relative',
-                zIndex: 100
-              }}
+              className="w-full px-4 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 border-slate-300 dark:border-gray-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#2f4982] dark:focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-[#2f4982]/50 dark:hover:border-blue-500/50"
             />
           </div>
 
@@ -181,8 +161,8 @@ export default function ClienteSection({
           <button
             type="button"
             onClick={() => handleAddPerson()}
-            disabled={!currentRole.trim()}
-            className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-[#2f4982] to-blue-600 hover:from-[#2f4982]/90 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-[#2f4982]/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!currentRole.trim() || !selectedPerson}
+            className="relative z-20 w-full md:w-auto px-6 py-3 bg-gradient-to-r from-[#2f4982] to-blue-600 hover:from-[#2f4982]/90 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-[#2f4982]/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UserPlus className="w-5 h-5" />
             Adicionar Cliente
@@ -195,37 +175,44 @@ export default function ClienteSection({
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-slate-200 dark:border-gray-700 shadow-lg">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <span className="w-2 h-2 bg-[#2f4982] rounded-full animate-pulse" />
-            Pessoas do Cliente ({formData.clientPersons.length})
+            Clientes ({formData.clientPersons.length})
           </h3>
 
           <div className="space-y-4">
             {formData.clientPersons.map((person) => (
               <div
                 key={person.id}
-                className="relative group bg-gradient-to-br from-[#2f4982]/5 via-blue-50/50 to-transparent dark:from-[#2f4982]/10 dark:via-blue-900/10 rounded-xl p-5 border border-[#2f4982]/20 dark:border-[#2f4982]/30 shadow hover:shadow-lg hover:shadow-[#2f4982]/10 transition-all duration-300"
+                className="relative group bg-white dark:bg-gray-800/50 rounded-xl p-6 border-2 border-slate-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-[#2f4982]/50 dark:hover:border-blue-500/50 transition-all duration-300"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-                        {person.name}
-                      </h4>
-                      <span className="px-3 py-1 bg-[#2f4982]/10 dark:bg-[#2f4982]/20 text-[#2f4982] dark:text-blue-300 rounded-full text-sm font-semibold">
-                        {person.role}
-                      </span>
+                  <div className="flex-1 min-w-0">
+                    {/* Nome e Cargo */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2f4982] to-blue-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                        {person.name[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                          {person.name}
+                        </h4>
+                        <span className="inline-block px-3 py-1 bg-[#2f4982]/10 dark:bg-[#2f4982]/20 text-[#2f4982] dark:text-blue-300 rounded-full text-sm font-semibold">
+                          {person.role}
+                        </span>
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {/* Email e Telefone */}
+                    <div className="space-y-2 pl-15">
                       {person.email && (
-                        <div>
-                          <span className="font-semibold text-slate-600 dark:text-gray-400">Email:</span>{' '}
-                          <span className="text-slate-900 dark:text-white">{person.email}</span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-slate-500 dark:text-gray-400">📧</span>
+                          <span className="text-slate-900 dark:text-white truncate">{person.email}</span>
                         </div>
                       )}
                       {person.phone && (
-                        <div>
-                          <span className="font-semibold text-slate-600 dark:text-gray-400">Telefone:</span>{' '}
-                          <span className="text-slate-900 dark:text-white">{person.phone}</span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-slate-500 dark:text-gray-400">📱</span>
+                          <span className="text-slate-900 dark:text-white truncate">{person.phone}</span>
                         </div>
                       )}
                     </div>
@@ -234,8 +221,8 @@ export default function ClienteSection({
                   <button
                     type="button"
                     onClick={() => handleRemovePerson(person.id)}
-                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
-                    title="Remover"
+                    className="flex-shrink-0 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                    title="Remover cliente"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>

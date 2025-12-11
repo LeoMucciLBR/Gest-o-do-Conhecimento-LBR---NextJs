@@ -6,6 +6,7 @@ import { LocationField } from '@/components/ui/LocationField'
 import type { LocationValue } from '@/components/ui/LocationField'
 import { FileText,  Image as ImageIcon, X } from 'lucide-react'
 import RichTextEditor from '@/components/ui/RichTextEditor'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 interface GeralSectionProps {
   formData: {
@@ -125,12 +126,28 @@ export default function GeralSection({
             required
           />
 
-          <InputWithValidation
+          <CustomSelect
             label="Setor"
-            name="setor"
             value={formData.setor}
-            onChange={onChange}
-            placeholder="Ex: Infraestrutura, Transportes"
+            onChange={(value) => onChange({ target: { name: 'setor', value } } as any)}
+            options={[
+              { value: 'Rodovias', label: 'Rodovias' },
+              { value: 'Ferrovias', label: 'Ferrovias' },
+              { value: 'Transportes', label: 'Transportes' },
+              { value: 'Infraestrutura', label: 'Infraestrutura' },
+              { value: 'Portos', label: 'Portos' },
+              { value: 'Aeroportos', label: 'Aeroportos' },
+              { value: 'Saneamento', label: 'Saneamento' },
+              { value: 'Energia', label: 'Energia' },
+              { value: 'Telecomunicações', label: 'Telecomunicações' },
+              { value: 'Edificações', label: 'Edificações' },
+              { value: 'Meio Ambiente', label: 'Meio Ambiente' },
+              { value: 'Recursos Hídricos', label: 'Recursos Hídricos' },
+              { value: 'Mineração', label: 'Mineração' },
+              { value: 'Consultoria', label: 'Consultoria' },
+              { value: 'Outros', label: 'Outros' },
+            ]}
+            placeholder="Selecione um setor"
           />
 
           <div className="md:col-span-2">
