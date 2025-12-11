@@ -136,6 +136,13 @@ model users {
   editors_added         contract_editors[]      @relation("EditorAdder")
   contract_audit_logs   contract_audit_log[]
   contract_notifications contract_notifications[]
+  
+  // Security relations
+  blocked_ips_added     blocked_ips[]           @relation("BlockedIpBy")
+  blocked_users_added   blocked_users[]         @relation("BlockedUserBy")
+  blocked_user_entry    blocked_users[]         @relation("BlockedUser")
+  security_alerts       security_alerts[]       @relation("SecurityAlerts")
+  whitelisted_ips_added whitelisted_ips[]       @relation("WhitelistedIpBy")
 }
 
 model suppliers {
