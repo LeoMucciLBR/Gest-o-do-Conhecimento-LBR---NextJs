@@ -11,13 +11,24 @@ export async function apiFetch<T = unknown>(
     ...init,
   })
   if (!res.ok) {
-    let msg = `Erro ${res.status}`
+    let errorData: any = { message: `Erro ${res.status}` }
     try {
       const j = await res.json()
-      if (j?.error) msg = j.error
-      else if (j?.message) msg = j.message
+      // Preservar todos os dados do erro (code, cooldownUntil, attemptsLeft, country, etc)
+      errorData = j
+      // Garantir que message existe
+      if (!errorData.message && errorData.error) {
+        errorData.message = errorData.error
+      }
     } catch {}
-    throw new Error(msg)
+    
+    // Criar erro com todos os dados preservados
+    const error: any = new Error(errorData.message || errorData.error || 'Erro desconhecido')
+    error.code = errorData.code
+    error.cooldownUntil = errorData.cooldownUntil
+    error.attemptsLeft = errorData.attemptsLeft
+    error.country = errorData.country
+    throw error
   }
   return (await res.json()) as T
 }

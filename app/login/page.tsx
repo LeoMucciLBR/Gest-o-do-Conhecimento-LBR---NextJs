@@ -18,6 +18,7 @@ import Image from "next/image";
 import { apiFetch } from "@/lib/api/api";
 import { VerificationModal } from "@/components/auth/VerificationModal";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
+import { SecurityModal } from "@/components/auth/SecurityModal";
 
 const schema = z.object({
   email: z.string().min(1, "Informe seu e-mail").email("E-mail inválido"),
@@ -25,13 +26,20 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
+type SecurityBlockType = 'BLOCKED' | 'RATE_LIMIT' | 'IP_BLOCKED' | 'COUNTRY_BLOCKED' | null;
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPwd, setShowPwd] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [attemptsLeft, setAttemptsLeft] = useState<number | undefined>(undefined);
 
-  // Modal State
+  // Security Modal State
+  const [securityBlock, setSecurityBlock] = useState<SecurityBlockType>(null);
+  const [securityData, setSecurityData] = useState<any>({});
+
+  // Other Modal State
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
@@ -67,6 +75,8 @@ function LoginForm() {
 
   async function onSubmit(data: FormData) {
     setErrorMsg(null);
+    setAttemptsLeft(undefined);
+    
     try {
       const payload = { email: data.email.trim(), password: data.password };
       const response = await apiFetch<any>("/auth/login", {
@@ -75,11 +85,8 @@ function LoginForm() {
       });
 
       if (response.isFirstLogin) {
-        // Primeiro acesso detectado
         setVerificationEmail(data.email);
         
-        // Tentar enviar código automaticamente, mas não bloquear se falhar (rate limit)
-        // O usuário poderá clicar em "Reenviar" no modal se necessário
         try {
           await apiFetch("/auth/send-verification-code", {
             method: "POST",
@@ -87,20 +94,41 @@ function LoginForm() {
           });
         } catch (err) {
           console.warn("Auto-send verification code failed:", err);
-          // Não mostramos erro aqui, deixamos o modal abrir e o usuário tentar reenviar se não chegar
         }
         
         setShowVerifyModal(true);
         return;
       }
 
-      // limpa apenas o campo senha e redireciona para a URL original
+      // Login bem-sucedido
       reset({ email: data.email, password: "" });
       const from = searchParams.get('from') || '/';
       router.replace(from);
       router.refresh();
     } catch (e: any) {
-      setErrorMsg(e?.message || "Falha ao entrar.");
+      const errorCode = e?.code;
+      const errorMessage = e?.message || "Falha ao entrar.";
+      
+      // Tratar códigos de erro de segurança
+      if (errorCode === 'USER_BLOCKED' || errorCode === 'IP_BLOCKED' || 
+          errorCode === 'RATE_LIMIT' || errorCode === 'COUNTRY_BLOCKED') {
+        
+        const type = errorCode === 'USER_BLOCKED' ? 'BLOCKED' : errorCode as SecurityBlockType;
+        
+        setSecurityBlock(type);
+        setSecurityData({
+          message: errorMessage,
+          cooldownUntil: e?.cooldownUntil ? new Date(e.cooldownUntil) : undefined,
+          attemptsLeft: e?.attemptsLeft,
+          country: e?.country,
+        });
+      } else {
+        // Erro de credenciais ou outro erro
+        setErrorMsg(errorMessage);
+        if (e?.attemptsLeft !== undefined) {
+          setAttemptsLeft(e.attemptsLeft);
+        }
+      }
     }
   }
 
@@ -112,7 +140,6 @@ function LoginForm() {
 
   const handlePasswordChanged = () => {
     setShowChangePasswordModal(false);
-    // Login automático já foi feito pelo backend na troca de senha
     const from = searchParams.get('from') || '/';
     router.replace(from);
     router.refresh();
@@ -122,6 +149,14 @@ function LoginForm() {
     setErrorMsg(null);
     alert(`SSO "${provider}" ainda não implementado.`);
   };
+
+  const handleCloseSecurityModal = () => {
+    setSecurityBlock(null);
+    setSecurityData({});
+  };
+
+  // Bloquear submit se estiver bloqueado
+  const isBlocked = securityBlock !== null;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -168,9 +203,16 @@ function LoginForm() {
                   noValidate
                 >
                   {errorMsg && (
-                    <p className="text-sm text-red-600 dark:text-red-400 font-semibold">
-                      {errorMsg}
-                    </p>
+                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                      <p className="text-sm text-red-600 dark:text-red-400 font-semibold">
+                        {errorMsg}
+                      </p>
+                      {attemptsLeft !== undefined && attemptsLeft > 0 && (
+                        <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                          Tentativas restantes: <strong>{attemptsLeft}</strong>
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   <div className="space-y-2">
@@ -188,6 +230,7 @@ function LoginForm() {
                       aria-label="E-mail corporativo"
                       leftIcon={<MailIcon />}
                       error={errors.email?.message}
+                      disabled={isBlocked}
                       {...register("email")}
                     />
                     {errors.email && (
@@ -219,6 +262,7 @@ function LoginForm() {
                       placeholder="mínimo de 8 caracteres"
                       aria-label="Senha"
                       leftIcon={<LockIcon />}
+                      disabled={isBlocked}
                       rightSlot={
                         <button
                           type="button"
@@ -241,7 +285,7 @@ function LoginForm() {
                   <button
                     type="submit"
                     className="w-full py-3.5 bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-600 hover:to-blue-800 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isBlocked}
                   >
                     <span className="flex items-center justify-center gap-2">
                       {isSubmitting ? (
@@ -252,6 +296,8 @@ function LoginForm() {
                           </svg>
                           Entrando...
                         </>
+                      ) : isBlocked ? (
+                        "Acesso Bloqueado"
                       ) : (
                         "Entrar"
                       )}
@@ -273,8 +319,9 @@ function LoginForm() {
                 <div className="space-y-3">
                   <button
                     type="button"
-                    className="w-full py-3.5 px-6 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-200 transition-all duration-200 font-semibold shadow-sm hover:shadow-md rounded-xl flex items-center justify-center gap-3 hover:border-blue-300 dark:hover:border-blue-700 active:scale-[0.98]"
+                    className="w-full py-3.5 px-6 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-200 transition-all duration-200 font-semibold shadow-sm hover:shadow-md rounded-xl flex items-center justify-center gap-3 hover:border-blue-300 dark:hover:border-blue-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleSSOLogin("microsoft")}
+                    disabled={isBlocked}
                   >
                     <CloudKeyIcon className="h-5 w-5 text-[#00A4EF]" />
                     <span className="text-gray-700 dark:text-gray-200">
@@ -299,7 +346,17 @@ function LoginForm() {
         </div>
       </main>
 
-      {/* Modals */}
+      {/* Security Modal */}
+      {securityBlock && (
+        <SecurityModal
+          isOpen={true}
+          onClose={handleCloseSecurityModal}
+          type={securityBlock}
+          data={securityData}
+        />
+      )}
+
+      {/* Other Modals */}
       <VerificationModal
         isOpen={showVerifyModal}
         onClose={() => setShowVerifyModal(false)}

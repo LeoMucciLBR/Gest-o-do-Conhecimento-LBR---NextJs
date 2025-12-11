@@ -114,6 +114,23 @@ export async function recordLoginAttempt(
       attempted_at: new Date(),
     },
   })
+
+  // Se login bem-sucedido, limpar tentativas falhas anteriores
+  if (success) {
+    await clearFailedAttempts(email)
+  }
+}
+
+/**
+ * Limpa tentativas falhas após login bem-sucedido
+ */
+export async function clearFailedAttempts(email: string) {
+  await prisma.login_attempts.deleteMany({
+    where: {
+      email: email.toLowerCase(),
+      success: false,
+    },
+  })
 }
 
 /**

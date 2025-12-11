@@ -29,9 +29,52 @@ export async function getCountryFromIp(ipAddress: string): Promise<string> {
 }
 
 /**
+ * Verifica se IP é local ou privado
+ */
+function isPrivateOrLocalIp(ipAddress: string): boolean {
+  return (
+    ipAddress === '127.0.0.1' ||
+    ipAddress === 'localhost' ||
+    ipAddress === '::1' ||
+    ipAddress.startsWith('192.168.') ||
+    ipAddress.startsWith('10.') ||
+    ipAddress.startsWith('172.16.') ||
+    ipAddress.startsWith('172.17.') ||
+    ipAddress.startsWith('172.18.') ||
+    ipAddress.startsWith('172.19.') ||
+    ipAddress.startsWith('172.20.') ||
+    ipAddress.startsWith('172.21.') ||
+    ipAddress.startsWith('172.22.') ||
+    ipAddress.startsWith('172.23.') ||
+    ipAddress.startsWith('172.24.') ||
+    ipAddress.startsWith('172.25.') ||
+    ipAddress.startsWith('172.26.') ||
+    ipAddress.startsWith('172.27.') ||
+    ipAddress.startsWith('172.28.') ||
+    ipAddress.startsWith('172.29.') ||
+    ipAddress.startsWith('172.30.') ||
+    ipAddress.startsWith('172.31.')
+  )
+}
+
+/**
  * Busca localização completa do IP
  */
 export async function getLocationFromIp(ipAddress: string): Promise<GeoLocation> {
+  // IPs locais/privados: retornar Brasil (desenvolvimento)
+  if (isPrivateOrLocalIp(ipAddress)) {
+    return {
+      country: 'Brazil',
+      countryCode: 'BR',
+      region: 'SP',
+      city: 'São Paulo',
+      lat: -23.5505,
+      lon: -46.6333,
+      isp: 'Local',
+      status: 'success',
+    }
+  }
+
   // Verificar cache
   const cached = cache.get(ipAddress)
   if (cached && cached.expires > Date.now()) {
@@ -64,16 +107,16 @@ export async function getLocationFromIp(ipAddress: string): Promise<GeoLocation>
     return data
   } catch (error) {
     console.error('GeoIP error:', error)
-    // Retornar localização desconhecida em caso de erro
+    // Em caso de erro, retornar Brasil (fail-open para não bloquear acesso)
     return {
-      country: 'Unknown',
-      countryCode: 'XX',
+      country: 'Brazil',
+      countryCode: 'BR',
       region: '',
       city: '',
       lat: 0,
       lon: 0,
       isp: '',
-      status: 'fail',
+      status: 'success', // Changed to success to avoid blocking
     }
   }
 }
