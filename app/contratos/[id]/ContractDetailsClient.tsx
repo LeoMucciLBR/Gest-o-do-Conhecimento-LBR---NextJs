@@ -82,6 +82,11 @@ type ContractDetails = {
   organization: Organization | null
   participants: Participant[]
   obras?: any[]
+  companyParticipations?: Array<{
+    id: string
+    company_name: string
+    participation_percentage: number
+  }>
 }
 
 function prettyRole(role: string): string {
@@ -521,6 +526,96 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 className="prose dark:prose-invert max-w-none text-slate-700 dark:text-gray-300"
                 dangerouslySetInnerHTML={{ __html: contract.characteristics || 'Nenhuma característica informada.' }}
               />
+            </div>
+
+            {/* Empresas e Participações - SEMPRE VISÍVEL */}
+            <div className="md:col-span-2 bg-gradient-to-br from-[#2f4982]/5 via-blue-50/50 to-transparent dark:from-[#2f4982]/10 dark:via-blue-900/10 dark:to-transparent rounded-2xl p-6 border-2 border-[#2f4982]/20 dark:border-[#2f4982]/30 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group">
+              {/* Decorative Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              
+              <div className="relative z-10">
+                <h4 className="text-xl font-bold bg-gradient-to-r from-[#2f4982] to-blue-600 bg-clip-text text-transparent dark:text-white mb-6 flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-[#2f4982] to-blue-600 rounded-lg">
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                  Empresas e Participações
+                </h4>
+
+                {data.companyParticipations && data.companyParticipations.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {(() => {
+                        // Find the leader (empresa with highest percentage)
+                        const maxPercentage = Math.max(...data.companyParticipations.map(c => Number(c.participation_percentage)))
+                        
+                        // Sort companies by percentage descending (highest first)
+                        const sortedCompanies = [...data.companyParticipations].sort(
+                          (a, b) => Number(b.participation_percentage) - Number(a.participation_percentage)
+                        )
+                        
+                        return sortedCompanies.map((company, index) => {
+                          const percentage = Number(company.participation_percentage)
+                          const isLeader = percentage === maxPercentage
+                          
+                          return (
+                            <div 
+                              key={company.id}
+                              className={`${
+                                isLeader 
+                                  ? 'bg-white dark:bg-gray-800 border-2 border-amber-400 dark:border-amber-500' 
+                                  : 'bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:border-[#2f4982]/50 dark:hover:border-[#2f4982]/50'
+                              } rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 relative overflow-hidden`}
+                              style={{
+                                animationDelay: `${index * 100}ms`
+                              }}
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2">
+                                    {company.company_name}
+                                  </h5>
+                                  {isLeader && (
+                                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide mt-1 inline-block">
+                                      Líder
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="ml-2 px-3 py-1 bg-gradient-to-r from-[#2f4982] to-blue-600 text-white text-xs font-bold rounded-full shadow-sm flex-shrink-0">
+                                  {percentage.toFixed(2)}%
+                                </span>
+                              </div>
+
+                              {/* Progress Bar - Always Blue */}
+                              <div className="relative w-full h-3 bg-slate-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#2f4982] via-blue-500 to-blue-600 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                                  style={{ 
+                                    width: `${percentage}%`,
+                                    animation: 'slideIn 1s ease-out'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </>
+                ) : (
+                  /* Empty State */
+                  <div className="text-center py-12">
+                    <div className="inline-block p-4 bg-slate-100 dark:bg-gray-700/50 rounded-full mb-4">
+                      <Building2 className="w-12 h-12 text-slate-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-slate-600 dark:text-gray-400 font-medium text-lg">
+                      Nenhuma empresa informada
+                    </p>
+                    <p className="text-slate-500 dark:text-gray-500 text-sm mt-2">
+                      Não há empresas participantes cadastradas neste contrato
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

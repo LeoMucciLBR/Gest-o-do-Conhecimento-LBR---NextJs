@@ -12,6 +12,7 @@ import EmpresasSection from './EmpresasSection'
 interface GeralSectionProps {
   formData: {
     nomeContrato: string
+    contratante: string
     setor: string
     objetoContrato: string
     escopoContrato: string
@@ -109,12 +110,29 @@ export default function GeralSection({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <InputWithValidation
-            label="Nome do Contrato"
-            name="nomeContrato"
-            value={formData.nomeContrato}
-            onChange={onChange}
-            placeholder="Ex: Contrato de Consultoria Técnica"
+          <div className="md:col-span-2">
+            <InputWithValidation
+              label="Nome do Contrato"
+              name="nomeContrato"
+              value={formData.nomeContrato}
+              onChange={onChange}
+              placeholder="Ex: Contrato de Consultoria Técnica"
+              required
+            />
+          </div>
+
+          <CustomSelect
+            label="Contratante / Empresa"
+            value={formData.contratante}
+            onChange={(value) => onChange({ target: { name: 'contratante', value } } as any)}
+            options={[
+              { value: 'Agência Nacional de Transportes Terrestres - ANTT', label: 'Agência Nacional de Transportes Terrestres - ANTT' },
+              { value: 'Departamento de Estradas de Rodagem - DER/SP', label: 'Departamento de Estradas de Rodagem - DER/SP' },
+              { value: 'Secretaria de Infraestrutura e Meio Ambiente', label: 'Secretaria de Infraestrutura e Meio Ambiente' },
+              { value: 'Desenvolvimento Rodoviário S.A. - DERSA', label: 'Desenvolvimento Rodoviário S.A. - DERSA' },
+              { value: 'Companhia de Desenvolvimento Urbano - CDHU', label: 'Companhia de Desenvolvimento Urbano - CDHU' },
+            ]}
+            placeholder="Selecione o contratante"
             required
           />
 
@@ -133,7 +151,7 @@ export default function GeralSection({
             placeholder="Selecione um setor"
           />
 
-          {/* Empresas e Participações - substitui o campo Contratante/Empresa */}
+          {/* Empresas e Participações */}
           <div className="md:col-span-2">
             <EmpresasSection
               companies={formData.companyParticipations}

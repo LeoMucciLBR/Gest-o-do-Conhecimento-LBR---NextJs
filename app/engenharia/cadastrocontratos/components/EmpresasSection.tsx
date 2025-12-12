@@ -157,17 +157,11 @@ export default function EmpresasSection({
   return (
     <div className="space-y-8">
       {/* Title with image */}
-      <div className="flex items-center justify-center gap-3 mb-6">
-        <img 
-          src="/uploaded_image_1765483838829.png" 
-          alt="Empresas e Participações" 
-          className="h-8 object-contain"
-        />
-      </div>
+      
 
       {/* Add Company Section */}
       <div className="relative group bg-gradient-to-br from-[#2f4982]/8 via-blue-50/50 to-transparent dark:from-[#2f4982]/15 dark:via-blue-900/10 rounded-2xl p-6 border-2 border-[#2f4982]/30 dark:border-[#2f4982]/40 shadow-lg hover:shadow-xl hover:shadow-[#2f4982]/10 transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982]/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982]/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         
         <h3 className="relative text-lg font-bold bg-gradient-to-r from-[#2f4982] to-blue-600 bg-clip-text text-transparent dark:text-white mb-5 flex items-center gap-2">
           <Building2 className="w-5 h-5 text-[#2f4982] dark:text-blue-400" />
@@ -203,7 +197,12 @@ export default function EmpresasSection({
               max="100"
               step="0.01"
               value={percentage}
-              onChange={(e) => setPercentage(e.target.value)}
+              onChange={(e) => {
+                console.log('Percentage onChange:', e.target.value)
+                setPercentage(e.target.value)
+              }}
+              onFocus={() => console.log('Percentage field focused')}
+              disabled={false}
               className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-slate-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#2f4982] focus:border-transparent transition-all duration-200 text-slate-900 dark:text-white"
               placeholder="Ex: 50.00"
             />

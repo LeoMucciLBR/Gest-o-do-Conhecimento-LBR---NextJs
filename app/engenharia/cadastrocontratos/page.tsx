@@ -19,6 +19,7 @@ type TabType = 'geral' | 'localizacao' | 'cliente' | 'equipe' | 'obras'
 
 interface FormData {
   nomeContrato: string
+  contratante: string
   setor: string
   objetoContrato: string
   escopoContrato: string
@@ -106,6 +107,7 @@ export default function CadastroContrato() {
 
   const [formData, setFormData] = useState<FormData>({
     nomeContrato: '',
+    contratante: '',
     setor: '',
     objetoContrato: '',
     escopoContrato: '',
@@ -227,6 +229,7 @@ export default function CadastroContrato() {
 
         setFormData({
           nomeContrato: contract.name || '',
+          contratante: organization.name || '',
           setor: contract.sector || '',
           objetoContrato: contract.object || '',
           escopoContrato: contract.scope || '',
@@ -345,8 +348,8 @@ export default function CadastroContrato() {
       setActiveTab('geral')
       return
     }
-    if (formData.companyParticipations.length === 0) {
-      toast.error('Adicione pelo menos uma empresa participante.')
+    if (!formData.contratante.trim()) {
+      toast.error('Informe o Contratante/Empresa.')
       setActiveTab('geral')
       return
     }
@@ -426,7 +429,7 @@ export default function CadastroContrato() {
         location: formData.localizacao?.texto || null,
         clientOfficeLocation: formData.localizacaoEscritorioCliente?.texto || null,
         lbrOfficeLocation: formData.localizacaoEscritorioLbr?.texto || null,
-        organization: { name: formData.companyParticipations[0]?.companyName || 'Sem empresa' },
+        organization: { name: formData.contratante },
         participants,
         obras: obrasPayload,
         companyParticipations: companyParticipationsPayload,
