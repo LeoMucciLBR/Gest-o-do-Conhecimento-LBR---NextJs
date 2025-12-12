@@ -7,9 +7,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const cookieStore = await cookies()
     const sessionToken = cookieStore.get('sid')?.value
 
@@ -28,7 +29,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const blockId = params.id
+    const blockId = id
 
     // Buscar IP antes de deletar
     const blockedEntry = await prisma.blocked_ips.findUnique({
