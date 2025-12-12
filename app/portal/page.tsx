@@ -84,6 +84,17 @@ export default function Portal() {
                 { label: 'Contas a Receber', to: '/financeiro/receber' },
               ]}
             />
+
+            <CardNav
+              title="Cadastros"
+              to="/portal/cadastros"
+              image="/images/ImgDepEngenharia.png"
+              items={[
+                { label: 'Empresas', to: '/portal/cadastros?tab=empresas' },
+                { label: 'Clientes', to: '/portal/cadastros?tab=clientes' },
+                { label: 'Equipe', to: '/portal/cadastros?tab=equipe' },
+              ]}
+            />
           </div>
         </div>
       </div>
