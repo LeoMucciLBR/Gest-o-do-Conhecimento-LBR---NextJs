@@ -87,12 +87,12 @@ export default function Portal() {
 
             <CardNav
               title="Cadastros"
-              to="/portal/cadastros"
+              to="/cadastros"
               image="/images/ImgDepEngenharia.png"
               items={[
-                { label: 'Empresas', to: '/portal/cadastros?tab=empresas' },
-                { label: 'Clientes', to: '/portal/cadastros?tab=clientes' },
-                { label: 'Equipe', to: '/portal/cadastros?tab=equipe' },
+                { label: 'Empresas', to: '/cadastros?tab=empresas' },
+                { label: 'Clientes', to: '/cadastros?tab=clientes' },
+                { label: 'Equipe', to: '/cadastros?tab=equipe' },
               ]}
             />
           </div>
