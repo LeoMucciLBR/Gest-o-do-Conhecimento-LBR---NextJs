@@ -4,6 +4,8 @@ import { Plus, X, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import { ESTADOS } from '../lib/validation'
 import CustomSelect from '@/components/ui/CustomSelect'
+import { LocationField } from '@/components/ui/LocationField'
+import type { LocationValue } from '@/components/ui/LocationField'
 
 export type ObraTipo = 'FEDERAL' | 'ESTADUAL'
 
@@ -41,6 +43,9 @@ interface ObrasSectionProps {
   onUpdateObraField: <K extends keyof ObraRow>(index: number, field: K, value: ObraRow[K]) => void
   onChangeTipo: (index: number, tipo: ObraTipo) => void
   onChangeUf: (index: number, uf: string) => void
+  sector?: string
+  localizacao?: LocationValue
+  onLocalizacaoChange?: (value: LocationValue) => void
 }
 
 export default function ObrasSection({
@@ -54,6 +59,9 @@ export default function ObrasSection({
   onUpdateObraField,
   onChangeTipo,
   onChangeUf,
+  sector = '',
+  localizacao,
+  onLocalizacaoChange,
 }: ObrasSectionProps) {
   // State to track KM validation errors for each obra
   const [kmValidationErrors, setKmValidationErrors] = useState<Record<number, KmValidationError>>({})
@@ -142,39 +150,64 @@ export default function ObrasSection({
     validateKm(index, field, value)
   }
 
+  // Check if sector is Rodovias to show highway selector
+  const isRodoviaSector = sector === 'Rodovias'
+
   return (
     <div className="space-y-6">
-      {/* Pergunta inicial */}
-      <div className="relative group bg-gradient-to-br from-amber-50/40 via-yellow-50/30 to-transparent dark:from-amber-900/10 dark:via-yellow-900/5 rounded-2xl p-6 border-2 border-amber-100 dark:border-amber-900/30 shadow-lg hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        <h3 className="relative z-10 text-lg font-bold bg-gradient-to-r from-amber-700 to-yellow-600 bg-clip-text text-transparent dark:text-white mb-4">
-          O contrato contempla mais de uma obra/rodovia?
-        </h3>
-        <div className="relative z-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <button
-            type="button"
-            onClick={() => onHasMultipleWorksChange('nao')}
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
-              hasMultipleWorks === 'nao'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Não
-          </button>
-          <button
-            type="button"
-            onClick={() => onHasMultipleWorksChange('sim')}
-            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
-              hasMultipleWorks === 'sim'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Sim
-          </button>
+      {/* If NOT Rodovias sector, show location field instead */}
+      {!isRodoviaSector && localizacao && onLocalizacaoChange && (
+        <div className="relative group bg-gradient-to-br from-[#2f4982]/8 via-blue-50/50 to-transparent dark:from-[#2f4982]/15 dark:via-blue-900/10 rounded-2xl p-6 border-2 border-[#2f4982]/30 dark:border-[#2f4982]/40 shadow-lg hover:shadow-xl hover:shadow-[#2f4982]/10 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982]/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <h3 className="relative text-lg font-bold bg-gradient-to-r from-[#2f4982] to-blue-600 bg-clip-text text-transparent dark:text-white mb-5 flex items-center gap-2">
+            <span className="w-2 h-2 bg-[#2f4982] rounded-full animate-pulse shadow-lg shadow-[#2f4982]/50" />
+            Localização da Obra/Projeto
+          </h3>
+
+          <LocationField
+            value={localizacao}
+            onChange={onLocalizacaoChange}
+            placeholder="Digite o endereço ou localização do projeto"
+            label="Endereço"
+            required
+          />
         </div>
-      </div>
+      )}
+
+      {/* If Rodovias sector, show highway selector interface */}
+      {isRodoviaSector && (
+        <>
+          {/* Pergunta inicial */}
+          <div className="relative group bg-gradient-to-br from-amber-50/40 via-yellow-50/30 to-transparent dark:from-amber-900/10 dark:via-yellow-900/5 rounded-2xl p-6 border-2 border-amber-100 dark:border-amber-900/30 shadow-lg hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+            <h3 className="relative z-10 text-lg font-bold bg-gradient-to-r from-amber-700 to-yellow-600 bg-clip-text text-transparent dark:text-white mb-4">
+              O contrato contempla mais de uma obra/rodovia?
+            </h3>
+            <div className="relative z-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button
+                type="button"
+                onClick={() => onHasMultipleWorksChange('nao')}
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
+                  hasMultipleWorks === 'nao'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Não
+              </button>
+              <button
+                type="button"
+                onClick={() => onHasMultipleWorksChange('sim')}
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
+                  hasMultipleWorks === 'sim'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Sim
+              </button>
+            </div>
+          </div>
 
       {/* Tabela de Obras */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-gray-700">
@@ -500,6 +533,8 @@ export default function ObrasSection({
           ))}
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

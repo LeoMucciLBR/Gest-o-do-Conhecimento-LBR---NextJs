@@ -400,12 +400,21 @@ export async function GET(
       person: people.find((pp) => pp.id === p.person_id) ?? null,
     }))
 
+    // Fetch company participations
+    const companyParticipations = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT id, company_name, participation_percentage, created_at, updated_at
+      FROM contract_company_participation
+      WHERE contract_id = $1::uuid
+      ORDER BY created_at
+    `, id)
+
     return NextResponse.json({
       contract: c,
       organization: org,
       participants: participantsWithPerson,
       documents,
       obras,
+      companyParticipations: companyParticipations || [],
     })
   } catch (error) {
     console.error('Get contract error:', error)
@@ -498,14 +507,18 @@ export async function PUT(
       const updatedContract = await tx.contracts.update({
         where: { id },
         data: {
-          organization_id: orgId,
+          organization: {
+            connect: { id: orgId }
+          },
           name: dto.name,
           sector: dto.sector ?? null,
           object: dto.object ?? null,
           scope: dto.scope ?? null,
-
+          caracteristicas: dto.caracteristicas ?? null,
           status: (dto.status as any) ?? 'Ativo',
           location: dto.location ?? null,
+          client_office_location: dto.clientOfficeLocation ?? null,
+          lbr_office_location: dto.lbrOfficeLocation ?? null,
           data_inicio: dto.dataInicio ? new Date(dto.dataInicio) : null,
           data_fim: dto.dataFim ? new Date(dto.dataFim) : null,
           valor: dto.valor ?? null,
@@ -723,6 +736,24 @@ export async function PUT(
             kind: 'COVER_IMAGE',
           },
         })
+      }
+
+      // 8) Handle company participations - delete existing and recreate
+      await tx.$executeRaw`
+        DELETE FROM contract_company_participation WHERE contract_id = ${id}::uuid
+      `
+
+      if ((dto as any).companyParticipations?.length) {
+        const participations = (dto as any).companyParticipations
+
+        for (const cp of participations) {
+          await tx.$executeRaw`
+            INSERT INTO contract_company_participation (contract_id, company_name, participation_percentage)
+            VALUES (${id}::uuid, ${cp.companyName}, ${cp.participationPercentage}::decimal)
+          `
+        }
+
+        console.log(`✅ Updated ${participations.length} company participations`)
       }
 
       return updatedContract

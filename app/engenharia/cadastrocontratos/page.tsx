@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Save, ArrowLeft, ArrowRight, Check, Trash2, FileText, MapPin, User, Users, Layers } from 'lucide-react'
+import { Save, ArrowLeft, ArrowRight, Check, Trash2, FileText, MapPin, User, Users, Layers, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api/api'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
@@ -10,6 +10,7 @@ import type { LocationValue } from '@/components/ui/LocationField'
 import GeralSection from './components/GeralSection'
 import ClienteSection, { type ClientPerson } from './components/ClienteSection'
 import EquipeSection, { type TeamMember } from './components/EquipeSection'
+import EmpresasSection, { type CompanyParticipation } from './components/EmpresasSection'
 import LocalizacaoSection from './components/LocalizacaoSection'
 import ObrasSection, { type ObraRow, type RodoviaOption, type ObraTipo } from './components/ObrasSection'
 import { emptyLocation } from './lib/validation'
@@ -18,7 +19,6 @@ type TabType = 'geral' | 'localizacao' | 'cliente' | 'equipe' | 'obras'
 
 interface FormData {
   nomeContrato: string
-  contratante: string
   setor: string
   objetoContrato: string
   escopoContrato: string
@@ -33,6 +33,7 @@ interface FormData {
   localizacaoEscritorioLbr: LocationValue
   clientPersons: ClientPerson[]
   teamMembers: TeamMember[]
+  companyParticipations: CompanyParticipation[]
 }
 
 function normalizarRodoviasEstaduais(data: RodoviaOption[], uf: string): RodoviaOption[] {
@@ -105,7 +106,6 @@ export default function CadastroContrato() {
 
   const [formData, setFormData] = useState<FormData>({
     nomeContrato: '',
-    contratante: '',
     setor: '',
     objetoContrato: '',
     escopoContrato: '',
@@ -120,6 +120,7 @@ export default function CadastroContrato() {
     localizacaoEscritorioLbr: emptyLocation,
     clientPersons: [],
     teamMembers: [],
+    companyParticipations: [],
   })
 
   const [hasMultipleWorks, setHasMultipleWorks] = useState<'nao' | 'sim'>('nao')
@@ -226,7 +227,6 @@ export default function CadastroContrato() {
 
         setFormData({
           nomeContrato: contract.name || '',
-          contratante: organization.name || '',
           setor: contract.sector || '',
           objetoContrato: contract.object || '',
           escopoContrato: contract.scope || '',
@@ -279,6 +279,11 @@ export default function CadastroContrato() {
               email: p.person?.email || '',
               phone: p.person?.phone || ''
             })),
+          companyParticipations: (data.companyParticipations || []).map((cp: any, index: number) => ({
+            id: `loaded-company-${index}`,
+            companyName: cp.company_name || '',
+            percentage: String(cp.participation_percentage || '0')
+          })),
         })
 
         // Load existing documents (cover image and lamina)
@@ -340,8 +345,8 @@ export default function CadastroContrato() {
       setActiveTab('geral')
       return
     }
-    if (!formData.contratante.trim()) {
-      toast.error('Informe o Contratante/Empresa.')
+    if (formData.companyParticipations.length === 0) {
+      toast.error('Adicione pelo menos uma empresa participante.')
       setActiveTab('geral')
       return
     }
@@ -349,6 +354,19 @@ export default function CadastroContrato() {
       toast.error('Objeto e Escopo são obrigatórios.')
       setActiveTab('geral')
       return
+    }
+
+    // Validate company participations
+    if (formData.companyParticipations.length > 0) {
+      const totalPercentage = formData.companyParticipations.reduce(
+        (sum, company) => sum + (parseFloat(company.percentage) || 0),
+        0
+      )
+      if (totalPercentage !== 100) {
+        toast.error(`Participação das empresas deve somar exatamente 100%. Total atual: ${totalPercentage.toFixed(2)}%`)
+        setActiveTab('geral')
+        return
+      }
     }
 
     const normalizarKm = (valor: string) => Number(valor.replace(',', '.').trim())
@@ -372,6 +390,12 @@ export default function CadastroContrato() {
         }))
 
       const participants = buildParticipants(formData)
+
+      // Build company participations payload
+      const companyParticipationsPayload = formData.companyParticipations.map(cp => ({
+        companyName: cp.companyName,
+        participationPercentage: parseFloat(cp.percentage)
+      }))
 
       const laminaFile = formData.lamina
         ? {
@@ -400,9 +424,12 @@ export default function CadastroContrato() {
         valor: formData.valorContrato || null,
         status: 'Ativo',
         location: formData.localizacao?.texto || null,
-        organization: { name: formData.contratante },
+        clientOfficeLocation: formData.localizacaoEscritorioCliente?.texto || null,
+        lbrOfficeLocation: formData.localizacaoEscritorioLbr?.texto || null,
+        organization: { name: formData.companyParticipations[0]?.companyName || 'Sem empresa' },
         participants,
         obras: obrasPayload,
+        companyParticipations: companyParticipationsPayload,
         laminaFile: laminaFile || undefined,
         coverImageFile: coverImageFile || undefined,
         removeLamina: existingLaminaRemoved,
@@ -572,6 +599,7 @@ export default function CadastroContrato() {
                   <GeralSection
                     formData={formData}
                     onChange={handleInputChange}
+                    onCompaniesChange={(companies) => setFormData((prev) => ({ ...prev, companyParticipations: companies }))}
                     onFileChange={handleFileChange}
                     onImageChange={handleImageChange}
                     onRemoveFile={handleRemoveFile}
@@ -638,6 +666,9 @@ export default function CadastroContrato() {
                         else await loadBrsFederais(uf)
                       }
                     }}
+                    sector={formData.setor}
+                    localizacao={formData.localizacao}
+                    onLocalizacaoChange={(value) => setFormData((prev) => ({ ...prev, localizacao: value }))}
                   />
                 </div>
               )}

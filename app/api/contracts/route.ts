@@ -300,6 +300,25 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
         console.log('⚠️ No coverImageFile in payload')
       }
 
+      // 7) Handle company participations
+      console.log('Checking companyParticipations:', {
+        hasCompanyParticipations: !!(dto as any).companyParticipations,
+        participationsLength: (dto as any).companyParticipations?.length || 0
+      })
+
+      if ((dto as any).companyParticipations?.length) {
+        const participations = (dto as any).companyParticipations
+
+        for (const cp of participations) {
+          await tx.$executeRaw`
+            INSERT INTO contract_company_participation (contract_id, company_name, participation_percentage)
+            VALUES (${contract.id}::uuid, ${cp.companyName}, ${cp.participationPercentage}::decimal)
+          `
+        }
+
+        console.log(`✅ Created ${participations.length} company participations`)
+      }
+
       return contract
     })
 

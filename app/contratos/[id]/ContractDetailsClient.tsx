@@ -665,13 +665,12 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
               {selectedSection === 'localizacao' && (
                 <div className="space-y-6">
                   {/* Location Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
                     {/* Card 1: Escritório Cliente */}
                     <div 
                       onClick={() => {
-                        const gestor = participants.find(p => p.role === 'GESTOR_AREA') || participants.find(p => !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role));
-                        const address = gestor?.person?.office || 'Endereço não informado';
+                        const address = contract.client_office_location || 'Endereço não informado';
                         if (address && address !== 'Endereço não informado') {
                            setMapModalType('CLIENTE');
                            setMapModalAddress(address);
@@ -688,7 +687,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                       </div>
                       <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Escritório Cliente</h4>
                       <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-3">
-                        {(participants.find(p => p.role === 'GESTOR_AREA') || participants.find(p => !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role)))?.person?.office || 'Endereço não informado'}
+                        {contract.client_office_location || 'Endereço não informado'}
                       </p>
                       <div className="mt-4 flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span>Ver no mapa</span>
@@ -696,39 +695,10 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                       </div>
                     </div>
 
-                    {/* Card 2: Localização da Obra/Projeto */}
+                    {/* Card 2: Escritório LBR */}
                     <div 
                       onClick={() => {
-                         const loc = contract.location || 'Localização não informada';
-                         if (loc && loc !== 'Localização não informada') {
-                           setMapModalType('OBRA_LOCATION');
-                           setMapModalAddress(loc);
-                           setMapModalOpen(true);
-                         }
-                      }}
-                      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-slate-100 dark:border-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                         <MapPin className="w-16 h-16 text-orange-500" />
-                      </div>
-                      <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl w-fit mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300">
-                        <Target className="w-6 h-6 text-orange-600 dark:text-orange-400 group-hover:text-white" />
-                      </div>
-                      <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Localização da Obra/Projeto</h4>
-                      <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-3">
-                        {contract.location || 'Localização não informada'}
-                      </p>
-                       <div className="mt-4 flex items-center gap-2 text-sm text-orange-600 dark:text-orange-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <span>Ver no mapa</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    {/* Card 3: Escritório LBR */}
-                    <div 
-                      onClick={() => {
-                         const lbr = participants.find(p => ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL'].includes(p.role));
-                         const address = lbr?.person?.office || 'Endereço não informado';
+                         const address = contract.lbr_office_location || 'Endereço não informado';
                          if (address && address !== 'Endereço não informado') {
                            setMapModalType('LBR');
                            setMapModalAddress(address);
@@ -745,7 +715,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                       </div>
                       <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Escritório LBR</h4>
                       <p className="text-lg font-bold text-slate-900 dark:text-white line-clamp-3">
-                         {participants.find(p => ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL'].includes(p.role))?.person?.office || 'Endereço não informado'}
+                         {contract.lbr_office_location || 'Endereço não informado'}
                       </p>
                        <div className="mt-4 flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span>Ver no mapa</span>
@@ -755,59 +725,82 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
 
                   </div>
 
-                   {/* Visualização dos Trechos (Restored) */}
-                   {data.obras && data.obras.length > 0 && (
-                     <div className="space-y-6">
-                        <div>
-                          <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                            🗺️ Visualização dos Trechos
-                          </h4>
-                          <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
-                            Clique em um trecho no mapa para ver detalhes e adicionar anotações
-                          </p>
-                          <ObraMapViewer
-                            obras={data.obras}
-                            onObraClick={handleObraClick}
-                            selectedObraId={selectedObra?.id || null}
-                            hoveredObraId={hoveredObraId}
-                            nonConformities={nonConformities}
-                            onNonConformityClick={handleNonConformityClick}
-                          />
-                        </div>
+                   {/* Conditional Visualization: Highway Segments or Project Location */}
+                   {contract.sector === 'Rodovias' ? (
+                     // Show highway segments visualization for Rodovias sector
+                     data.obras && data.obras.length > 0 && (
+                       <div className="space-y-6">
+                         <div>
+                           <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                             🗺️ Visualização dos Trechos
+                           </h4>
+                           <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                             Clique em um trecho no mapa para ver detalhes e adicionar anotações
+                           </p>
+                           <ObraMapViewer
+                             obras={data.obras}
+                             onObraClick={handleObraClick}
+                             selectedObraId={selectedObra?.id || null}
+                             hoveredObraId={hoveredObraId}
+                             nonConformities={nonConformities}
+                             onNonConformityClick={handleNonConformityClick}
+                           />
+                         </div>
 
-                        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-gray-700">
-                          <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-50 dark:bg-gray-900/50">
-                              <tr>
-                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">UF</th>
-                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Rodovia</th>
-                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Início</th>
-                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Fim</th>
-                                <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Extensão</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
-                              {data.obras.map((obra: any) => (
-                                <tr 
-                                  key={obra.id} 
-                                  className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                                  onClick={() => handleObraClick(obra)}
-                                  onMouseEnter={() => setHoveredObraId(obra.id)}
-                                  onMouseLeave={() => setHoveredObraId(null)}
-                                >
-                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.uf || '-'}</td>
-                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.nome || '-'}</td>
-                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_inicio}</td>
-                                  <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_fim}</td>
-                                  <td className="py-4 px-6 text-green-600 dark:text-green-400 font-bold">
-                                    {(obra.km_fim - obra.km_inicio).toFixed(2)} km
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                     </div>
+                         <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-gray-700">
+                           <table className="w-full text-left border-collapse">
+                             <thead className="bg-slate-50 dark:bg-gray-900/50">
+                               <tr>
+                                 <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">UF</th>
+                                 <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Rodovia</th>
+                                 <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Início</th>
+                                 <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Km Fim</th>
+                                 <th className="py-4 px-6 font-bold text-slate-700 dark:text-gray-300">Extensão</th>
+                               </tr>
+                             </thead>
+                             <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
+                               {data.obras.map((obra: any) => (
+                                 <tr 
+                                   key={obra.id} 
+                                   className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
+                                   onClick={() => handleObraClick(obra)}
+                                   onMouseEnter={() => setHoveredObraId(obra.id)}
+                                   onMouseLeave={() => setHoveredObraId(null)}
+                                 >
+                                   <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.uf || '-'}</td>
+                                   <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.nome || '-'}</td>
+                                   <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_inicio}</td>
+                                   <td className="py-4 px-6 text-slate-800 dark:text-gray-200">{obra.km_fim}</td>
+                                   <td className="py-4 px-6 text-green-600 dark:text-green-400 font-bold">
+                                     {(obra.km_fim - obra.km_inicio).toFixed(2)} km
+                                   </td>
+                                 </tr>
+                               ))}
+                             </tbody>
+                           </table>
+                         </div>
+                       </div>
+                     )
+                   ) : (
+                     // Show project location map for non-Rodovias sectors
+                     contract.location && (
+                       <div className="mt-8 space-y-4">
+                         <div>
+                           <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                             🗺️ Visualização da Localização
+                           </h4>
+                           <p className="text-sm text-slate-600 dark:text-gray-400 mb-4">
+                             Mapa com a localização do projeto
+                           </p>
+                           <div className="rounded-2xl border-2 border-slate-200 dark:border-gray-700 overflow-hidden shadow-lg h-[500px]">
+                             <LocationMapViewer 
+                               address={contract.location}
+                               className="h-full w-full"
+                             />
+                           </div>
+                         </div>
+                       </div>
+                     )
                    )}
                 </div>
               )}

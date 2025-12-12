@@ -7,11 +7,11 @@ import type { LocationValue } from '@/components/ui/LocationField'
 import { FileText,  Image as ImageIcon, X } from 'lucide-react'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import CustomSelect from '@/components/ui/CustomSelect'
+import EmpresasSection from './EmpresasSection'
 
 interface GeralSectionProps {
   formData: {
     nomeContrato: string
-    contratante: string
     setor: string
     objetoContrato: string
     escopoContrato: string
@@ -21,8 +21,10 @@ interface GeralSectionProps {
     valorContrato: string
     lamina: File | null
     imagemContrato: File | null
+    companyParticipations: Array<{id: string; companyName: string; percentage: string}>
   }
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
+  onCompaniesChange: (companies: Array<{id: string; companyName: string; percentage: string}>) => void
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile: () => void
@@ -34,6 +36,7 @@ interface GeralSectionProps {
 export default function GeralSection({
   formData,
   onChange,
+  onCompaniesChange,
   onFileChange,
   onImageChange,
   onRemoveFile,
@@ -106,23 +109,12 @@ export default function GeralSection({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="md:col-span-2">
-            <InputWithValidation
-              label="Nome do Contrato"
-              name="nomeContrato"
-              value={formData.nomeContrato}
-              onChange={onChange}
-              placeholder="Ex: Contrato de Consultoria Técnica"
-              required
-            />
-          </div>
-
           <InputWithValidation
-            label="Contratante / Empresa"
-            name="contratante"
-            value={formData.contratante}
+            label="Nome do Contrato"
+            name="nomeContrato"
+            value={formData.nomeContrato}
             onChange={onChange}
-            placeholder="Nome da empresa contratante"
+            placeholder="Ex: Contrato de Consultoria Técnica"
             required
           />
 
@@ -131,24 +123,23 @@ export default function GeralSection({
             value={formData.setor}
             onChange={(value) => onChange({ target: { name: 'setor', value } } as any)}
             options={[
-              { value: 'Rodovias', label: 'Rodovias' },
-              { value: 'Ferrovias', label: 'Ferrovias' },
-              { value: 'Transportes', label: 'Transportes' },
               { value: 'Infraestrutura', label: 'Infraestrutura' },
-              { value: 'Portos', label: 'Portos' },
-              { value: 'Aeroportos', label: 'Aeroportos' },
-              { value: 'Saneamento', label: 'Saneamento' },
-              { value: 'Energia', label: 'Energia' },
-              { value: 'Telecomunicações', label: 'Telecomunicações' },
-              { value: 'Edificações', label: 'Edificações' },
-              { value: 'Meio Ambiente', label: 'Meio Ambiente' },
-              { value: 'Recursos Hídricos', label: 'Recursos Hídricos' },
-              { value: 'Mineração', label: 'Mineração' },
-              { value: 'Consultoria', label: 'Consultoria' },
-              { value: 'Outros', label: 'Outros' },
+              { value: 'Rodovias', label: 'Rodovias' },
+              { value: 'Hidrovias', label: 'Hidrovias' },
+              { value: 'Ferrovias', label: 'Ferrovias' },
+              { value: 'Edificações/habitação', label: 'Edificações/habitação' },
+              { value: 'Escolas/habitações', label: 'Escolas/habitações' },
             ]}
             placeholder="Selecione um setor"
           />
+
+          {/* Empresas e Participações - substitui o campo Contratante/Empresa */}
+          <div className="md:col-span-2">
+            <EmpresasSection
+              companies={formData.companyParticipations}
+              onCompaniesChange={onCompaniesChange}
+            />
+          </div>
 
           <div className="md:col-span-2">
             <InputWithValidation
