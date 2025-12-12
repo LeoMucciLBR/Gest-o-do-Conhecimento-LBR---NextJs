@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'IP address is required' }, { status: 400 })
     }
 
-    await blockIp(ip_address, reason || 'Blocked by admin', session.userId)
+    await blockIp(ip_address, reason || 'Blocked by admin', session.user.id)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
