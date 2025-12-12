@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'IP address and description are required' }, { status: 400 })
     }
 
-    await whitelistIp(ip_address, description, session.userId)
+    await whitelistIp(ip_address, description, session.user.id)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
