@@ -1,5 +1,7 @@
 'use client'
 
+import dynamic from 'next/dynamic'
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -44,7 +46,10 @@ import SoftwareExplorer from './software/components/SoftwareExplorer'
 import FichaModal from '@/components/modals/FichaModal'
 import EditorsManager from './components/EditorsManager'
 import AuditLogViewer from './components/AuditLogViewer'
-import PDFViewerModal from '@/components/ui/PDFViewerModal'
+import LessonsSection from './components/LessonsSection'
+
+// Dynamic import to avoid SSR issues with react-pdf
+const PDFViewerModal = dynamic(() => import('@/components/ui/PDFViewerModal'), { ssr: false })
 
 type Contract = {
   id: string
@@ -820,6 +825,10 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 </div>
               )}
 
+              {selectedSection === 'dificuldades' && (
+                <LessonsSection contractId={contractId} />
+              )}
+
               {selectedSection === 'localizacao' && (
                 <div className="space-y-6">
                   {/* Location Cards Grid */}
@@ -986,18 +995,6 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
               {selectedSection === 'software' && (
                  <div className="animate-in fade-in slide-in-from-right duration-500">
                   <SoftwareExplorer contractId={contractId} />
-                </div>
-              )}
-
-              {['dificuldades'].includes(selectedSection) && (
-                <div className="text-center py-12">
-                  <div className="inline-flex p-6 bg-slate-100 dark:bg-gray-700 rounded-full mb-4">
-                    {sections.find(s => s.id === selectedSection)?.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Em Breve</h3>
-                  <p className="text-slate-600 dark:text-gray-400">
-                    A seção de {sections.find(s => s.id === selectedSection)?.label.toLowerCase()} será implementada em breve.
-                  </p>
                 </div>
               )}
             </div>
