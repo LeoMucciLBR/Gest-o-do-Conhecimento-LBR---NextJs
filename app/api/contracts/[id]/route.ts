@@ -74,7 +74,7 @@ export async function GET(
 
     const participants = await prisma.contract_participants.findMany({
       where: { contract_id: id },
-      select: { role: true, person_id: true },
+      select: { role: true, custom_role: true, person_id: true },
     })
 
     type PersonLite = {
@@ -397,6 +397,7 @@ export async function GET(
 
     const participantsWithPerson = participants.map((p) => ({
       role: p.role,
+      custom_role: p.custom_role,
       person: people.find((pp) => pp.id === p.person_id) ?? null,
     }))
 
@@ -408,8 +409,19 @@ export async function GET(
       ORDER BY created_at
     `, id)
 
+    // Extract lamina_url and image_url from documents
+    const laminaDoc = documents.find(d => d.kind === 'LAMINA')
+    const coverDoc = documents.find(d => d.kind === 'COVER_IMAGE')
+    
+    const lamina_url = laminaDoc?.storage_url || null
+    const image_url = coverDoc?.storage_url || null
+
     return NextResponse.json({
-      contract: c,
+      contract: {
+        ...c,
+        lamina_url,
+        image_url,
+      },
       organization: org,
       participants: participantsWithPerson,
       documents,
@@ -585,11 +597,16 @@ export async function PUT(
 
           if (!personId) continue
 
+          // Determine if role is custom (will be mapped to OUTRO)
+          const mappedRole = mapToContractRole(p.role)
+          const isCustomRole = mappedRole === 'OUTRO' && p.role && p.role !== 'OUTRO'
+          
           await tx.contract_participants.create({
             data: {
               contract_id: id,
               person_id: personId,
-              role: mapToContractRole(p.role) as any,
+              role: mappedRole as any,
+              custom_role: isCustomRole ? p.role : null,
             },
           })
         }

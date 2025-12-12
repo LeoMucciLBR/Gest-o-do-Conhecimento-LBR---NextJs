@@ -730,7 +730,7 @@ export default function CadastroContrato() {
                     const currentIndex = tabs.findIndex((t) => t.id === activeTab)
                     if (currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1].id)
                   }}
-                  className="group px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-lbr-primary to-secondary text-white hover:from-lbr-primary-hover hover:to-secondary-dark shadow-lg hover:shadow-xl hover:shadow-secondary/50 hover:translate-x-1 flex items-center gap-2"
+                  className="group px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl hover:shadow-blue-500/30 hover:translate-x-1 flex items-center gap-2"
                 >
                   <span>Próximo</span>
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />

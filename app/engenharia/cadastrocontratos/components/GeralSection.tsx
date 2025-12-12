@@ -59,49 +59,6 @@ export default function GeralSection({
 
   return (
     <div className="space-y-8">
-      {/* Image Upload */}
-      <div className="bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-950/20 rounded-2xl p-6 border-2 border-purple-100 dark:border-purple-900 shadow-sm hover:shadow-md transition-shadow">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-          <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse" />
-          Imagem do Contrato
-        </h3>
-
-        {imagePreview || existingImageUrl ? (
-          <div className="relative group">
-            <img
-              src={imagePreview || existingImageUrl!}
-              alt="Preview"
-              className="w-full h-64 object-cover rounded-xl shadow-lg"
-            />
-            <button
-              type="button"
-              onClick={onRemoveImage}
-              className="absolute top-3 right-3 p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        ) : (
-          <label className="block cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onImageChange}
-              className="hidden"
-            />
-            <div className="p-8 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:border-purple-500 dark:hover:border-purple-500 transition-all hover:shadow-md text-center bg-purple-50/50 dark:bg-purple-900/10">
-              <ImageIcon className="w-12 h-12 mx-auto mb-3 text-purple-400" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">
-                Clique para selecionar uma imagem
-              </p>
-              <p className="text-xs text-slate-500 dark:text-gray-400">
-                PNG, JPG ou WebP (máx. 10MB)
-              </p>
-            </div>
-          </label>
-        )}
-      </div>
-
       {/* Informações Básicas */}
       <div className="bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20 rounded-2xl p-6 border-2 border-blue-100 dark:border-blue-900 shadow-sm hover:shadow-md transition-shadow">
         <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
@@ -222,6 +179,49 @@ export default function GeralSection({
             />
           </div>
         </div>
+      </div>
+
+      {/* Image Upload - Moved here, above Lamina */}
+      <div className="bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-950/20 rounded-2xl p-6 border-2 border-purple-100 dark:border-purple-900 shadow-sm hover:shadow-md transition-shadow">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-5 flex items-center gap-2">
+          <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse" />
+          Imagem do Contrato
+        </h3>
+
+        {imagePreview || existingImageUrl ? (
+          <div className="relative group">
+            <img
+              src={imagePreview || existingImageUrl!}
+              alt="Preview"
+              className="w-full h-64 object-cover rounded-xl shadow-lg"
+            />
+            <button
+              type="button"
+              onClick={onRemoveImage}
+              className="absolute top-3 right-3 p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <label className="block cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onImageChange}
+              className="hidden"
+            />
+            <div className="p-8 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-xl hover:border-purple-500 dark:hover:border-purple-500 transition-all hover:shadow-md text-center bg-purple-50/50 dark:bg-purple-900/10">
+              <ImageIcon className="w-12 h-12 mx-auto mb-3 text-purple-400" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">
+                Clique para selecionar uma imagem
+              </p>
+              <p className="text-xs text-slate-500 dark:text-gray-400">
+                PNG, JPG ou WebP (máx. 10MB)
+              </p>
+            </div>
+          </label>
+        )}
       </div>
 
       {/* Upload de Lâmina (PDF) */}

@@ -28,6 +28,9 @@ import {
   List,
   Plus,
   Clock,
+  Image,
+  X,
+  Maximize2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { apiFetch } from '@/lib/api/api'
@@ -41,6 +44,7 @@ import SoftwareExplorer from './software/components/SoftwareExplorer'
 import FichaModal from '@/components/modals/FichaModal'
 import EditorsManager from './components/EditorsManager'
 import AuditLogViewer from './components/AuditLogViewer'
+import PDFViewerModal from '@/components/ui/PDFViewerModal'
 
 type Contract = {
   id: string
@@ -74,6 +78,7 @@ type Person = {
 
 type Participant = {
   role: string
+  custom_role?: string | null
   person: Person
 }
 
@@ -89,7 +94,12 @@ type ContractDetails = {
   }>
 }
 
-function prettyRole(role: string): string {
+function prettyRole(role: string, customRole?: string | null): string {
+  // If there's a custom role, use it (this is for client contacts with free-text roles)
+  if (customRole) {
+    return customRole
+  }
+  
   const normalized = role.trim().toUpperCase().replace(/\s+/g, '_')
   switch (normalized) {
     case 'GESTOR_AREA':
@@ -100,6 +110,8 @@ function prettyRole(role: string): string {
       return 'Coordenadora'
     case 'ENGENHEIRO_RESPONSAVEL':
       return 'Engenheiro Responsável'
+    case 'OUTRO':
+      return customRole || 'Outro'
     default:
       return role || 'Função'
   }
@@ -133,6 +145,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [editorsModalOpen, setEditorsModalOpen] = useState(false)
   const [auditLogOpen, setAuditLogOpen] = useState(false)
+  const [pdfModalOpen, setPdfModalOpen] = useState(false)
 
   const handleNonConformityClick = (nc: NonConformityMarker) => {
     console.log('Parent received NC click:', nc)
@@ -628,7 +641,18 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
               {sections.map((section, index) => (
                 <button
                   key={section.id}
-                  onClick={() => setSelectedSection(selectedSection === section.id ? null : section.id)}
+                  onClick={() => {
+                    // Special handling for LÂMINA - open modal directly
+                    if (section.id === 'lamina') {
+                      if (contract.lamina_url) {
+                        setPdfModalOpen(true)
+                      } else {
+                        setSelectedSection(selectedSection === section.id ? null : section.id)
+                      }
+                    } else {
+                      setSelectedSection(selectedSection === section.id ? null : section.id)
+                    }
+                  }}
                   className={`group relative overflow-hidden rounded-2xl p-4 sm:p-6 transition-all duration-500 transform hover:scale-105 border border-slate-100 dark:border-gray-700 ${
                     selectedSection === section.id
                       ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
@@ -671,20 +695,59 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
 
 
               {selectedSection === 'lamina' && (
-                <div className="space-y-4">
-                  {contract.lamina_url ? (
-                    <a
-                      href={contract.lamina_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group inline-flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-lbr-primary to-secondary hover:from-lbr-primary-hover hover:to-secondary-dark text-white rounded-xl font-semibold shadow-lg hover:shadow-2xl hover:shadow-lbr-primary/50 transition-all duration-300 hover:scale-105"
-                    >
-                      <FileText className="w-6 h-6" />
-                      <span>Abrir Lâmina do Contrato</span>
-                      <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                    </a>
-                  ) : (
-                    <p className="text-slate-700 dark:text-gray-300 text-center py-8 font-medium">Nenhuma lâmina disponível.</p>
+                <div className="space-y-6">
+                  {/* Este conteúdo só aparece se não tem lâmina (fallback) */}
+                  {!contract.lamina_url && (
+                    <div className="text-center py-12 bg-slate-50 dark:bg-gray-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-gray-700">
+                      <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-gray-600" />
+                      <p className="text-slate-500 dark:text-gray-400 font-medium">Nenhuma lâmina disponível para este contrato.</p>
+                      <p className="text-sm text-slate-400 dark:text-gray-500 mt-2">Adicione uma lâmina editando o contrato.</p>
+                    </div>
+                  )}
+
+                  {/* Downloads Section - sempre mostra se tiver algum arquivo */}
+                  {(contract.lamina_url || contract.image_url) && (
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 dark:from-gray-800/50 dark:to-blue-950/20 rounded-2xl p-6 border border-slate-200 dark:border-gray-700">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Download className="w-5 h-5 text-blue-600" />
+                        Arquivos para Download
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {contract.lamina_url && (
+                          <button
+                            type="button"
+                            onClick={() => setPdfModalOpen(true)}
+                            className="group flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all text-left"
+                          >
+                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-800/30 transition-colors">
+                              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-slate-900 dark:text-white">Lâmina do Contrato</p>
+                              <p className="text-sm text-slate-500 dark:text-gray-400">PDF • Clique para visualizar</p>
+                            </div>
+                            <Maximize2 className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-all" />
+                          </button>
+                        )}
+                        {contract.image_url && (
+                          <a
+                            href={contract.image_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="group flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-lg transition-all"
+                          >
+                            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-800/30 transition-colors">
+                              <Image className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-slate-900 dark:text-white">Imagem do Contrato</p>
+                              <p className="text-sm text-slate-500 dark:text-gray-400">Imagem • Abrir em nova aba</p>
+                            </div>
+                            <ExternalLink className="w-5 h-5 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -699,7 +762,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                         className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-secondary dark:text-secondary-light mb-2 uppercase tracking-wider">
-                          {(p as any).custom_role || prettyRole(p.role)}
+                          {prettyRole(p.role, p.custom_role)}
                         </p>
                         <p className="text-xl font-bold text-slate-900 dark:text-white mb-2">{p.person.full_name}</p>
                         <div className="flex flex-col gap-2 text-sm text-slate-700 dark:text-gray-300 font-medium">
@@ -733,7 +796,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                         className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wider">
-                          {(p as any).custom_role || prettyRole(p.role)}
+                          {prettyRole(p.role, p.custom_role)}
                         </p>
                         <p className="text-xl font-bold text-slate-900 dark:text-white mb-2">{p.person.full_name}</p>
                         <div className="flex flex-col gap-2 text-sm text-slate-700 dark:text-gray-300 font-medium">
@@ -1157,6 +1220,16 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
         isOpen={auditLogOpen}
         onClose={() => setAuditLogOpen(false)}
       />
+
+      {/* Custom PDF Viewer Modal */}
+      {contract.lamina_url && (
+        <PDFViewerModal
+          url={contract.lamina_url}
+          isOpen={pdfModalOpen}
+          onClose={() => setPdfModalOpen(false)}
+          title="Lâmina do Contrato"
+        />
+      )}
     </>
   )
 }

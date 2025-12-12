@@ -155,11 +155,16 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
 
           if (!personId) continue
 
+          // Determine if role is custom (will be mapped to OUTRO)
+          const mappedRole = mapToContractRole(p.role)
+          const isCustomRole = mappedRole === 'OUTRO' && p.role && p.role !== 'OUTRO'
+          
           await tx.contract_participants.create({
             data: {
               contract_id: contract.id,
               person_id: personId,
-              role: mapToContractRole(p.role) as any,
+              role: mappedRole as any,
+              custom_role: isCustomRole ? p.role : null,
             },
           })
         }

@@ -144,14 +144,12 @@ export default function EmpresasSection({
   }
 
   const handlePercentageChange = (id: string, newPercentage: string) => {
-    const percentageValue = parseFloat(newPercentage)
-    if (newPercentage && (!isNaN(percentageValue) && percentageValue >= 0 && percentageValue <= 100)) {
-      onCompaniesChange(
-        companies.map(c => 
-          c.id === id ? { ...c, percentage: percentageValue.toFixed(2) } : c
-        )
+    // Update directly with the string value to preserve user input while typing
+    onCompaniesChange(
+      companies.map(c => 
+        c.id === id ? { ...c, percentage: newPercentage } : c
       )
-    }
+    )
   }
 
   return (
@@ -191,21 +189,29 @@ export default function EmpresasSection({
               <Percent className="w-4 h-4" />
               Participação (%) *
             </label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={percentage}
-              onChange={(e) => {
-                console.log('Percentage onChange:', e.target.value)
-                setPercentage(e.target.value)
-              }}
-              onFocus={() => console.log('Percentage field focused')}
-              disabled={false}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-slate-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#2f4982] focus:border-transparent transition-all duration-200 text-slate-900 dark:text-white"
-              placeholder="Ex: 50.00"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={percentage}
+                onChange={(e) => {
+                  // Only allow numbers and one decimal point
+                  const value = e.target.value.replace(',', '.')
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    const numValue = parseFloat(value)
+                    if (value === '' || (numValue >= 0 && numValue <= 100)) {
+                      setPercentage(value)
+                    }
+                  }
+                }}
+                className="w-full px-4 py-3 pr-12 bg-white dark:bg-gray-800 border-2 border-slate-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#2f4982] focus:border-transparent transition-all duration-200 text-slate-900 dark:text-white text-right font-medium"
+                placeholder="0.00"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 font-semibold pointer-events-none">
+                %
+              </span>
+            </div>
           </div>
         </div>
 
@@ -272,17 +278,24 @@ export default function EmpresasSection({
                       {company.companyName}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-2">
+                      <div className="relative inline-flex items-center">
                         <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
+                          pattern="[0-9]*[.,]?[0-9]*"
                           value={company.percentage}
-                          onChange={(e) => handlePercentageChange(company.id, e.target.value)}
-                          className="w-24 px-3 py-1.5 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#2f4982] text-slate-900 dark:text-white"
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.')
+                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                              const numValue = parseFloat(value)
+                              if (value === '' || (numValue >= 0 && numValue <= 100)) {
+                                handlePercentageChange(company.id, value)
+                              }
+                            }
+                          }}
+                          className="w-20 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#2f4982] focus:border-transparent text-slate-900 dark:text-white text-right font-medium transition-all"
                         />
-                        <span className="text-slate-600 dark:text-gray-400">%</span>
+                        <span className="absolute right-3 text-slate-500 dark:text-gray-400 font-medium pointer-events-none">%</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
