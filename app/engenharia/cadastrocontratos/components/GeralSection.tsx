@@ -4,10 +4,18 @@ import { useEffect, useState } from 'react'
 import InputWithValidation from './InputWithValidation'
 import { LocationField } from '@/components/ui/LocationField'
 import type { LocationValue } from '@/components/ui/LocationField'
-import { FileText,  Image as ImageIcon, X } from 'lucide-react'
+import { FileText,  Image as ImageIcon, X, Loader2 } from 'lucide-react'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import CustomSelect from '@/components/ui/CustomSelect'
 import EmpresasSection from './EmpresasSection'
+import { apiFetch } from '@/lib/api/api'
+
+interface Empresa {
+  id: string
+  nome: string
+  cnpj?: string
+  tipo: 'CONTRATANTE' | 'SOCIO'
+}
 
 interface GeralSectionProps {
   formData: {
@@ -46,6 +54,24 @@ export default function GeralSection({
   existingLaminaFilename,
 }: GeralSectionProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [contratantes, setContratantes] = useState<Empresa[]>([])
+  const [loadingContratantes, setLoadingContratantes] = useState(true)
+
+  // Load contratantes (empresas with tipo CONTRATANTE)
+  useEffect(() => {
+    async function loadContratantes() {
+      try {
+        setLoadingContratantes(true)
+        const data = await apiFetch<{ empresas: Empresa[] }>('/empresas?tipo=CONTRATANTE')
+        setContratantes(data.empresas || [])
+      } catch (error) {
+        console.error('Error loading contratantes:', error)
+      } finally {
+        setLoadingContratantes(false)
+      }
+    }
+    loadContratantes()
+  }, [])
 
   useEffect(() => {
     if (formData.imagemContrato) {
@@ -78,20 +104,24 @@ export default function GeralSection({
             />
           </div>
 
-          <CustomSelect
-            label="Contratante / Empresa"
-            value={formData.contratante}
-            onChange={(value) => onChange({ target: { name: 'contratante', value } } as any)}
-            options={[
-              { value: 'Agência Nacional de Transportes Terrestres - ANTT', label: 'Agência Nacional de Transportes Terrestres - ANTT' },
-              { value: 'Departamento de Estradas de Rodagem - DER/SP', label: 'Departamento de Estradas de Rodagem - DER/SP' },
-              { value: 'Secretaria de Infraestrutura e Meio Ambiente', label: 'Secretaria de Infraestrutura e Meio Ambiente' },
-              { value: 'Desenvolvimento Rodoviário S.A. - DERSA', label: 'Desenvolvimento Rodoviário S.A. - DERSA' },
-              { value: 'Companhia de Desenvolvimento Urbano - CDHU', label: 'Companhia de Desenvolvimento Urbano - CDHU' },
-            ]}
-            placeholder="Selecione o contratante"
-            required
-          />
+          <div className="relative">
+            {loadingContratantes && (
+              <div className="absolute right-3 top-9 z-10">
+                <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+              </div>
+            )}
+            <CustomSelect
+              label="Contratante / Empresa"
+              value={formData.contratante}
+              onChange={(value) => onChange({ target: { name: 'contratante', value } } as any)}
+              options={contratantes.map(emp => ({
+                value: emp.nome,
+                label: emp.nome + (emp.cnpj ? ` (${emp.cnpj})` : '')
+              }))}
+              placeholder={loadingContratantes ? "Carregando..." : "Selecione o contratante"}
+              required
+            />
+          </div>
 
           <CustomSelect
             label="Setor"

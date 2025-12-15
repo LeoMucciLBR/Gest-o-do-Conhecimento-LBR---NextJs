@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // Obter localização aproximada do IP (cidade/estado)
 export async function getLocationFromIP(ip: string): Promise<string | null> {

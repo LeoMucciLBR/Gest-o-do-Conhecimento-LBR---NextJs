@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { getLocationFromIP } from './loginLogger'
 import crypto from 'crypto'
-
-const prisma = new PrismaClient()
 
 // Configurações de sessão
 const SESSION_MAX_AGE_DAYS = Number(process.env.SESSION_MAX_AGE_DAYS ?? '1') // Default: 1 dia (absoluto)

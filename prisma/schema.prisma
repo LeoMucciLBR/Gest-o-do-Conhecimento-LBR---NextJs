@@ -136,6 +136,7 @@ model users {
   editors_added         contract_editors[]      @relation("EditorAdder")
   contract_audit_logs   contract_audit_log[]
   contract_notifications contract_notifications[]
+  created_lessons       contract_lessons[]      @relation("LessonCreator")
   
   // Security relations
   blocked_ips_added     blocked_ips[]           @relation("BlockedIpBy")
@@ -303,6 +304,8 @@ model contracts {
   product_folders     product_folders[]
   contract_softwares  contract_softwares[]
   notifications       contract_notifications[]
+  company_participations contract_company_participation[]
+  lessons             contract_lessons[]
 
   @@index([organization_id], map: "idx_contracts_org")
   @@index([status], map: "idx_contracts_status")
@@ -339,7 +342,7 @@ model contract_participants {
 model rodovias {
   id          Int                      @id @default(autoincrement())
   nome        String                   @db.VarChar(100)
-  codigo      String                   @unique @db.VarChar(20)
+  codigo      String                   @db.VarChar(20)
   uf          String?                  @db.VarChar(2)
   km_inicial  Decimal                  @db.Decimal(10, 3)
   km_final    Decimal                  @db.Decimal(10, 3)
@@ -780,3 +783,65 @@ model whitelisted_ips {
   @@index([ip_address])
 }
 
+// ============================================
+// EMPRESAS (Companies) - Unified table for contractors and partners
+// ============================================
+
+enum tipo_empresa {
+  CONTRATANTE
+  SOCIO
+}
+
+model empresas {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome       String
+  cnpj       String?       @unique
+  tipo       tipo_empresa
+  ativo      Boolean       @default(true)
+  created_at DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+
+  participations contract_company_participation[]
+
+  @@index([tipo])
+  @@index([nome])
+  @@index([ativo])
+}
+
+model contract_company_participation {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id              String    @db.Uuid
+  company_name             String
+  participation_percentage Decimal   @db.Decimal(5, 2)
+  empresa_id               String?   @db.Uuid
+  created_at               DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  contract contracts  @relation(fields: [contract_id], references: [id], onDelete: Cascade)
+  empresa  empresas?  @relation(fields: [empresa_id], references: [id], onDelete: SetNull)
+
+  @@index([contract_id])
+  @@index([company_name])
+}
+
+// ============================================
+// CONTRACT LESSONS (Difficulties and Learnings)
+// ============================================
+
+model contract_lessons {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id String   @db.Uuid
+  type        String   @db.VarChar(20)  // DIFICULDADE or APRENDIZADO
+  title       String   @db.VarChar(500)
+  description String?  @db.Text
+  created_by  String?  @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  contract contracts @relation(fields: [contract_id], references: [id], onDelete: Cascade)
+  creator  users?    @relation("LessonCreator", fields: [created_by], references: [id])
+
+  @@index([contract_id])
+  @@index([type])
+  @@index([created_at(sort: Desc)])
+}

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Building2, Percent, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Building2, Percent, AlertCircle, Loader2 } from 'lucide-react'
 import CustomSelect from '@/components/ui/CustomSelect'
+import { apiFetch } from '@/lib/api/api'
 
 export interface CompanyParticipation {
   id: string  // temporary UI ID
@@ -15,71 +16,12 @@ interface EmpresasSectionProps {
   onCompaniesChange: (companies: CompanyParticipation[]) => void
 }
 
-// Fixed list of companies
-const COMPANY_OPTIONS = [
-  'LBR',
-  'MODERA',
-  'SCB',
-  'GONENGE',
-  'PROGETTO',
-  'PRISMA',
-  'EHP',
-  'ASSIST',
-  'ESTEIO',
-  'SONDOTÉCNICA',
-  'EGIS',
-  'SMZ CONSULTORIA',
-  'GOS',
-  'JOHELY',
-  'GLOBO',
-  'ENGEPLAN',
-  'JÁ GUARRELLAS',
-  'BONIN ENGENHARIA',
-  'MULTIPLANO',
-  'MOBTEC',
-  'BIANCAR',
-  'REP',
-  'MENG ENGENHARIA',
-  'HAGAPLAN',
-  'CLD',
-  'CRA',
-  'COBRAPE',
-  'CAA',
-  'PLANSERVI',
-  'RBG INGENIEROS',
-  'GEOCONSULT',
-  'LAGESA',
-  'C3',
-  'Contecnica',
-  'Agência E',
-  'Encibra',
-  'Planal',
-  'Terra',
-  'SIGMA ENGENHARIA',
-  'AMBIENTE BRASIL',
-  'FUTURE MOTION',
-  'CONSEGUE',
-  'MAUBERTEC',
-  'INPLENITUS',
-  'Construtora Lettieri',
-  'BONIN',
-  'GERCONSULT',
-  'HIDROCONSULT',
-  'MMP CONSULTORIA',
-  'BRASITTI',
-  'ELECTROPAR',
-  'TECON',
-  'CIA SOCIEDAD',
-  'ELETROPAR',
-  'ENGECORPS',
-  'BUREAU',
-  'CONAM',
-  'STRATA',
-  'TIGGA',
-  'SINAL',
-  'GERIBELLO',
-  'NOVA ENGEVIX',
-].sort()
+interface Empresa {
+  id: string
+  nome: string
+  cnpj?: string
+  tipo: 'CONTRATANTE' | 'SOCIO'
+}
 
 export default function EmpresasSection({
   companies,
@@ -88,6 +30,24 @@ export default function EmpresasSection({
   const [selectedCompany, setSelectedCompany] = useState('')
   const [percentage, setPercentage] = useState('')
   const [validationError, setValidationError] = useState('')
+  const [empresasSocio, setEmpresasSocio] = useState<Empresa[]>([])
+  const [loadingEmpresas, setLoadingEmpresas] = useState(true)
+
+  // Load empresas type SOCIO from API
+  useEffect(() => {
+    async function loadEmpresas() {
+      try {
+        setLoadingEmpresas(true)
+        const data = await apiFetch<{ empresas: Empresa[] }>('/empresas?tipo=SOCIO')
+        setEmpresasSocio(data.empresas || [])
+      } catch (error) {
+        console.error('Error loading empresas:', error)
+      } finally {
+        setLoadingEmpresas(false)
+      }
+    }
+    loadEmpresas()
+  }, [])
 
   // Calculate total percentage
   const totalPercentage = companies.reduce((sum, company) => {
@@ -168,18 +128,23 @@ export default function EmpresasSection({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* Company Select */}
-          <div>
+          <div className="relative">
             <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
               Empresa *
             </label>
+            {loadingEmpresas && (
+              <div className="absolute right-3 top-9 z-10">
+                <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+              </div>
+            )}
             <CustomSelect
               value={selectedCompany}
               onChange={setSelectedCompany}
-              options={COMPANY_OPTIONS.map(company => ({
-                value: company,
-                label: company
+              options={empresasSocio.map(empresa => ({
+                value: empresa.nome,
+                label: empresa.nome + (empresa.cnpj ? ` (${empresa.cnpj})` : '')
               }))}
-              placeholder="Selecione uma empresa"
+              placeholder={loadingEmpresas ? "Carregando..." : "Selecione uma empresa"}
             />
           </div>
 
