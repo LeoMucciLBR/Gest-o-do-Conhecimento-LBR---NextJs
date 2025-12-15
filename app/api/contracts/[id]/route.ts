@@ -403,7 +403,7 @@ export async function GET(
 
     // Fetch company participations
     const companyParticipations = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, company_name, participation_percentage, created_at, updated_at
+      SELECT id, company_name, participation_percentage, empresa_id, created_at, updated_at
       FROM contract_company_participation
       WHERE contract_id = $1::uuid
       ORDER BY created_at
@@ -764,9 +764,16 @@ export async function PUT(
         const participations = (dto as any).companyParticipations
 
         for (const cp of participations) {
+          // Try to find matching empresa by name
+          const empresa = await tx.$queryRawUnsafe<any[]>(`
+            SELECT id FROM empresas WHERE nome = $1 AND tipo = 'SOCIO' LIMIT 1
+          `, cp.companyName)
+          
+          const empresaId = empresa?.[0]?.id || null
+
           await tx.$executeRaw`
-            INSERT INTO contract_company_participation (contract_id, company_name, participation_percentage)
-            VALUES (${id}::uuid, ${cp.companyName}, ${cp.participationPercentage}::decimal)
+            INSERT INTO contract_company_participation (contract_id, company_name, participation_percentage, empresa_id)
+            VALUES (${id}::uuid, ${cp.companyName}, ${cp.participationPercentage}::decimal, ${empresaId}::uuid)
           `
         }
 

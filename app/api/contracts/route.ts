@@ -315,9 +315,16 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
         const participations = (dto as any).companyParticipations
 
         for (const cp of participations) {
+          // Try to find matching empresa by name
+          const empresa = await tx.$queryRawUnsafe<any[]>(`
+            SELECT id FROM empresas WHERE nome = $1 AND tipo = 'SOCIO' LIMIT 1
+          `, cp.companyName)
+          
+          const empresaId = empresa?.[0]?.id || null
+
           await tx.$executeRaw`
-            INSERT INTO contract_company_participation (contract_id, company_name, participation_percentage)
-            VALUES (${contract.id}::uuid, ${cp.companyName}, ${cp.participationPercentage}::decimal)
+            INSERT INTO contract_company_participation (contract_id, company_name, participation_percentage, empresa_id)
+            VALUES (${contract.id}::uuid, ${cp.companyName}, ${cp.participationPercentage}::decimal, ${empresaId}::uuid)
           `
         }
 

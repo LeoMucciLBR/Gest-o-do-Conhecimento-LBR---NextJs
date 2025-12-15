@@ -47,6 +47,7 @@ import FichaModal from '@/components/modals/FichaModal'
 import EditorsManager from './components/EditorsManager'
 import AuditLogViewer from './components/AuditLogViewer'
 import LessonsSection from './components/LessonsSection'
+import EmpresaPessoasModal from '@/app/engenharia/cadastrocontratos/components/EmpresaPessoasModal'
 
 // Dynamic import to avoid SSR issues with react-pdf
 const PDFViewerModal = dynamic(() => import('@/components/ui/PDFViewerModal'), { ssr: false })
@@ -98,6 +99,7 @@ type ContractDetails = {
     id: string
     company_name: string
     participation_percentage: number
+    empresa_id?: string
   }>
 }
 
@@ -153,6 +155,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [editorsModalOpen, setEditorsModalOpen] = useState(false)
   const [auditLogOpen, setAuditLogOpen] = useState(false)
   const [pdfModalOpen, setPdfModalOpen] = useState(false)
+  const [empresaPessoasModalOpen, setEmpresaPessoasModalOpen] = useState(false)
+  const [selectedEmpresaForModal, setSelectedEmpresaForModal] = useState<{ id: string; nome: string } | null>(null)
 
   const handleNonConformityClick = (nc: NonConformityMarker) => {
     console.log('Parent received NC click:', nc)
@@ -508,7 +512,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 <DollarSign className="w-24 h-24 text-green-500" />
               </div>
               <h4 className="text-sm font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">Valor do Contrato</h4>
-              <p className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
+              <p className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-green-500">
                 {contract.valor || 'Não informado'}
               </p>
             </div>
@@ -584,9 +588,16 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                                 isLeader 
                                   ? 'bg-white dark:bg-gray-800 border-2 border-amber-400 dark:border-amber-500' 
                                   : 'bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:border-[#2f4982]/50 dark:hover:border-[#2f4982]/50'
-                              } rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 relative overflow-hidden`}
+                              } rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 relative overflow-hidden cursor-pointer`}
                               style={{
                                 animationDelay: `${index * 100}ms`
+                              }}
+                              onClick={() => {
+                                setSelectedEmpresaForModal({ 
+                                  id: company.empresa_id || '', 
+                                  nome: company.company_name 
+                                })
+                                setEmpresaPessoasModalOpen(true)
                               }}
                             >
                               <div className="flex items-start justify-between mb-3">
@@ -1229,6 +1240,17 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
           title="Lâmina do Contrato"
         />
       )}
+
+      {/* Empresa Pessoas Modal */}
+      <EmpresaPessoasModal
+        isOpen={empresaPessoasModalOpen}
+        onClose={() => {
+          setEmpresaPessoasModalOpen(false)
+          setSelectedEmpresaForModal(null)
+        }}
+        empresaNome={selectedEmpresaForModal?.nome || ''}
+        empresaId={selectedEmpresaForModal?.id}
+      />
     </>
   )
 }

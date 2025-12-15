@@ -258,6 +258,7 @@ model organizations {
 model people {
   id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organization_id String?                 @db.Uuid
+  empresa_id      String?                 @db.Uuid
   full_name       String
   email           String?
   phone           String?
@@ -267,8 +268,10 @@ model people {
   updated_at      DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
   participants    contract_participants[]
   organizations   organizations?          @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
+  empresa         empresas?               @relation(fields: [empresa_id], references: [id], onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_people_org")
+  @@index([empresa_id], map: "idx_people_empresa")
 }
 
 model contracts {
@@ -802,6 +805,7 @@ model empresas {
   updated_at DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
 
   participations contract_company_participation[]
+  pessoas        people[]
 
   @@index([tipo])
   @@index([nome])

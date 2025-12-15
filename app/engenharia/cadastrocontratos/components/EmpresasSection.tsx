@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Building2, Percent, AlertCircle, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Building2, Percent, AlertCircle, Loader2, Users } from 'lucide-react'
 import CustomSelect from '@/components/ui/CustomSelect'
 import { apiFetch } from '@/lib/api/api'
+import EmpresaPessoasModal from './EmpresaPessoasModal'
 
 export interface CompanyParticipation {
   id: string  // temporary UI ID
@@ -32,6 +33,10 @@ export default function EmpresasSection({
   const [validationError, setValidationError] = useState('')
   const [empresasSocio, setEmpresasSocio] = useState<Empresa[]>([])
   const [loadingEmpresas, setLoadingEmpresas] = useState(true)
+  
+  // Modal state
+  const [selectedEmpresa, setSelectedEmpresa] = useState<Empresa | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Load empresas type SOCIO from API
   useEffect(() => {
@@ -239,8 +244,26 @@ export default function EmpresasSection({
               <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
                 {companies.map((company) => (
                   <tr key={company.id} className="hover:bg-slate-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">
-                      {company.companyName}
+                    <td 
+                      className="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium cursor-pointer hover:text-[#2f4982] transition-colors"
+                      onClick={() => {
+                        console.log('Click on company:', company.companyName)
+                        console.log('empresasSocio:', empresasSocio)
+                        const empresa = empresasSocio.find(e => e.nome === company.companyName)
+                        console.log('Found empresa:', empresa)
+                        if (empresa) {
+                          setSelectedEmpresa(empresa)
+                        } else {
+                          // Fallback - create temporary empresa object
+                          setSelectedEmpresa({ id: '', nome: company.companyName, tipo: 'SOCIO' })
+                        }
+                        setIsModalOpen(true)
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-slate-400" />
+                        <span className="hover:underline">{company.companyName}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="relative inline-flex items-center">
@@ -305,6 +328,17 @@ export default function EmpresasSection({
           <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">Use o campo acima para adicionar empresas participantes</p>
         </div>
       )}
+
+      {/* Pessoas Modal */}
+      <EmpresaPessoasModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedEmpresa(null)
+        }}
+        empresaNome={selectedEmpresa?.nome || ''}
+        empresaId={selectedEmpresa?.id}
+      />
     </div>
   )
 }

@@ -1,8 +1,7 @@
-'use server'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, isAuthorized } from '@/lib/auth/session'
+import { logEmpresaCreate } from '@/lib/services/auditLogger'
 
 // GET /api/empresas - List all empresas with optional type filter
 export async function GET(request: NextRequest) {
@@ -92,9 +91,21 @@ export async function POST(request: NextRequest) {
       RETURNING id, nome, cnpj, tipo, ativo, created_at, updated_at
     `, nome.trim(), cnpj?.trim() || null, tipo)
 
-    return NextResponse.json({ empresa: result[0] }, { status: 201 })
+    const newEmpresa = result[0]
+
+    // Log the action
+    await logEmpresaCreate(
+      newEmpresa.id,
+      session.user.id,
+      { nome: newEmpresa.nome, cnpj: newEmpresa.cnpj, tipo: newEmpresa.tipo },
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      request.headers.get('user-agent') || undefined
+    )
+
+    return NextResponse.json({ empresa: newEmpresa }, { status: 201 })
   } catch (error) {
     console.error('Error creating empresa:', error)
     return NextResponse.json({ error: 'Erro ao criar empresa' }, { status: 500 })
   }
 }
+

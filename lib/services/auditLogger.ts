@@ -25,6 +25,18 @@ export enum AuditAction {
   PRODUCT_FILE_DELETE = 'PRODUCT_FILE_DELETE',
   PRODUCT_FOLDER_CREATE = 'PRODUCT_FOLDER_CREATE',
   PRODUCT_FOLDER_DELETE = 'PRODUCT_FOLDER_DELETE',
+
+  // Pessoas
+  PESSOA_CREATE = 'PESSOA_CREATE',
+  PESSOA_UPDATE = 'PESSOA_UPDATE',
+  PESSOA_DELETE = 'PESSOA_DELETE',
+  PESSOA_ADD_TO_EMPRESA = 'PESSOA_ADD_TO_EMPRESA',
+  PESSOA_REMOVE_FROM_EMPRESA = 'PESSOA_REMOVE_FROM_EMPRESA',
+
+  // Empresas
+  EMPRESA_CREATE = 'EMPRESA_CREATE',
+  EMPRESA_UPDATE = 'EMPRESA_UPDATE',
+  EMPRESA_DELETE = 'EMPRESA_DELETE',
 }
 
 /**
@@ -35,6 +47,8 @@ export enum EntityType {
   FILE = 'FILE',
   FOLDER = 'FOLDER',
   EDITOR = 'EDITOR',
+  PESSOA = 'PESSOA',
+  EMPRESA = 'EMPRESA',
 }
 
 interface AuditLogData {
@@ -451,4 +465,160 @@ export async function getContractAuditLogs(
   ])
 
   return { total, logs }
+}
+
+// ==========================================
+// PESSOAS - Logging Functions
+// ==========================================
+
+/**
+ * Log de criação de pessoa
+ */
+export async function logPessoaCreate(
+  pessoaId: string,
+  userId: string,
+  pessoaData: { full_name: string; email?: string; empresaId?: string; empresaNome?: string },
+  ipAddress?: string,
+  userAgent?: string
+) {
+  await createAuditLog({
+    userId,
+    action: AuditAction.PESSOA_CREATE,
+    entityType: EntityType.PESSOA,
+    entityId: pessoaId,
+    changes: {
+      created: true,
+      data: pessoaData
+    },
+    ipAddress,
+    userAgent
+  })
+}
+
+/**
+ * Log de adição de pessoa a empresa
+ */
+export async function logPessoaAddToEmpresa(
+  pessoaId: string,
+  empresaId: string,
+  userId: string,
+  details: { pessoaNome: string; empresaNome: string },
+  ipAddress?: string,
+  userAgent?: string
+) {
+  await createAuditLog({
+    userId,
+    action: AuditAction.PESSOA_ADD_TO_EMPRESA,
+    entityType: EntityType.PESSOA,
+    entityId: pessoaId,
+    changes: {
+      pessoa_id: pessoaId,
+      pessoa_nome: details.pessoaNome,
+      empresa_id: empresaId,
+      empresa_nome: details.empresaNome
+    },
+    ipAddress,
+    userAgent
+  })
+}
+
+/**
+ * Log de remoção de pessoa de empresa
+ */
+export async function logPessoaRemoveFromEmpresa(
+  pessoaId: string,
+  empresaId: string,
+  userId: string,
+  details: { pessoaNome: string; empresaNome: string },
+  ipAddress?: string,
+  userAgent?: string
+) {
+  await createAuditLog({
+    userId,
+    action: AuditAction.PESSOA_REMOVE_FROM_EMPRESA,
+    entityType: EntityType.PESSOA,
+    entityId: pessoaId,
+    changes: {
+      pessoa_id: pessoaId,
+      pessoa_nome: details.pessoaNome,
+      empresa_id: empresaId,
+      empresa_nome: details.empresaNome,
+      removed: true
+    },
+    ipAddress,
+    userAgent
+  })
+}
+
+// ==========================================
+// EMPRESAS - Logging Functions
+// ==========================================
+
+/**
+ * Log de criação de empresa
+ */
+export async function logEmpresaCreate(
+  empresaId: string,
+  userId: string,
+  empresaData: { nome: string; cnpj?: string; tipo: string },
+  ipAddress?: string,
+  userAgent?: string
+) {
+  await createAuditLog({
+    userId,
+    action: AuditAction.EMPRESA_CREATE,
+    entityType: EntityType.EMPRESA,
+    entityId: empresaId,
+    changes: {
+      created: true,
+      data: empresaData
+    },
+    ipAddress,
+    userAgent
+  })
+}
+
+/**
+ * Log de atualização de empresa
+ */
+export async function logEmpresaUpdate(
+  empresaId: string,
+  userId: string,
+  changes: Record<string, any>,
+  ipAddress?: string,
+  userAgent?: string
+) {
+  await createAuditLog({
+    userId,
+    action: AuditAction.EMPRESA_UPDATE,
+    entityType: EntityType.EMPRESA,
+    entityId: empresaId,
+    changes,
+    ipAddress,
+    userAgent
+  })
+}
+
+/**
+ * Log de deleção de empresa
+ */
+export async function logEmpresaDelete(
+  empresaId: string,
+  userId: string,
+  empresaNome: string,
+  ipAddress?: string,
+  userAgent?: string
+) {
+  await createAuditLog({
+    userId,
+    action: AuditAction.EMPRESA_DELETE,
+    entityType: EntityType.EMPRESA,
+    entityId: empresaId,
+    changes: {
+      empresa_nome: empresaNome,
+      deleted: true
+    },
+    ipAddress,
+    userAgent
+  })
 }
