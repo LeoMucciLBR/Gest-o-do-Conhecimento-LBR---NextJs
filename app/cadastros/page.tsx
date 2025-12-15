@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -60,7 +60,7 @@ type Supplier = {
   tipo: 'SOFTWARE' | 'MEDICAO'
 }
 
-export default function CadastrosPage() {
+function CadastrosContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get('tab') as TabType) || 'empresas'
@@ -847,5 +847,20 @@ export default function CadastrosPage() {
         </AnimatePresence>
       </div>
     </>
+  )
+}
+
+export default function CadastrosPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/20">
+        <div className="animate-pulse text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-200 dark:bg-gray-700" />
+          <p className="text-slate-500 dark:text-gray-400">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <CadastrosContent />
+    </Suspense>
   )
 }

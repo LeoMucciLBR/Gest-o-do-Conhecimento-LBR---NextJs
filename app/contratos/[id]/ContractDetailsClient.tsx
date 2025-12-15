@@ -66,6 +66,8 @@ type Contract = {
   data_fim: string | null
   characteristics: string | null
   created_by?: string | null
+  client_office_location?: string | null
+  lbr_office_location?: string | null
 }
 
 type Organization = {

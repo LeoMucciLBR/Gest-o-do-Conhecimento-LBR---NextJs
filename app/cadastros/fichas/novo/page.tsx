@@ -1,9 +1,10 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FichaForm from '../components/FichaForm'
 
-export default function NovaFichaPage() {
+function NovaFichaContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tipoParam = searchParams.get('tipo') as 'INTERNA' | 'CLIENTE' | null
@@ -32,4 +33,12 @@ export default function NovaFichaPage() {
   }
 
   return <FichaForm onSave={handleSave} mode="create" defaultTipo={tipoParam || undefined} />
+}
+
+export default function NovaFichaPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse p-8 text-center">Carregando...</div>}>
+      <NovaFichaContent />
+    </Suspense>
+  )
 }
