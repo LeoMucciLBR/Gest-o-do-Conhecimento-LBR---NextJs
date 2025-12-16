@@ -6,6 +6,8 @@ import { CheckCircle, RefreshCw, Plus, Trash2, X, Building2 } from 'lucide-react
 import { apiFetch } from '@/lib/api/api'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface WhitelistedIP {
   id: string
@@ -18,6 +20,7 @@ interface WhitelistedIP {
 }
 
 export default function WhitelistTab() {
+  const { showConfirm } = useCustomAlert()
   const [whitelistIPs, setWhitelistIPs] = useState<WhitelistedIP[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -48,7 +51,7 @@ export default function WhitelistTab() {
 
   const handleAdd = async () => {
     if (!newIP.trim() || !newDescription.trim()) {
-      alert('Informe o IP e a descrição')
+      toast.error('Informe o IP e a descrição')
       return
     }
 
@@ -67,14 +70,21 @@ export default function WhitelistTab() {
       setNewDescription('')
       await fetchWhitelist()
     } catch (error: any) {
-      alert(error.message || 'Erro ao adicionar IP')
+      toast.error(error.message || 'Erro ao adicionar IP')
     } finally {
       setAdding(false)
     }
   }
 
   const handleRemove = async (id: string, ip: string) => {
-    if (!confirm(`Remover IP ${ip} da whitelist?`)) return
+    const confirmed = await showConfirm({
+      title: 'Remover da Whitelist',
+      message: `Remover IP ${ip} da whitelist?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
 
     setRemovingId(id)
     try {
@@ -84,7 +94,7 @@ export default function WhitelistTab() {
       
       setWhitelistIPs(prev => prev.filter(item => item.id !== id))
     } catch (error) {
-      alert('Erro ao remover IP')
+      toast.error('Erro ao remover IP')
     } finally {
       setRemovingId(null)
     }

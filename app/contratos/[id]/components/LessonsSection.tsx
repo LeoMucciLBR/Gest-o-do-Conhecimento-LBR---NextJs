@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api/api'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface Lesson {
   id: string
@@ -31,6 +32,7 @@ interface LessonsSectionProps {
 }
 
 export default function LessonsSection({ contractId }: LessonsSectionProps) {
+  const { showConfirm } = useCustomAlert()
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'TODOS' | 'DIFICULDADE' | 'APRENDIZADO'>('TODOS')
@@ -54,8 +56,15 @@ export default function LessonsSection({ contractId }: LessonsSectionProps) {
     loadLessons()
   }, [loadLessons])
 
-  const handleDelete = async (lessonId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este registro?')) return
+  const handleDelete = async (lessonId: string, lessonTitle: string) => {
+    const confirmed = await showConfirm({
+      title: 'Excluir Registro',
+      message: `Tem certeza que deseja excluir "${lessonTitle}"?`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
 
     try {
       await apiFetch(`/contracts/${contractId}/lessons/${lessonId}`, { method: 'DELETE' })
@@ -293,7 +302,7 @@ interface LessonCardProps {
   expandedId: string | null
   setExpandedId: (id: string | null) => void
   handleEdit: (lesson: Lesson) => void
-  handleDelete: (id: string) => void
+  handleDelete: (id: string, title: string) => void
 }
 
 function LessonCard({ lesson, index, expandedId, setExpandedId, handleEdit, handleDelete }: LessonCardProps) {
@@ -370,7 +379,7 @@ function LessonCard({ lesson, index, expandedId, setExpandedId, handleEdit, hand
               <Edit2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => handleDelete(lesson.id)}
+              onClick={() => handleDelete(lesson.id, lesson.title)}
               className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 rounded-lg transition-colors"
               title="Excluir"
             >

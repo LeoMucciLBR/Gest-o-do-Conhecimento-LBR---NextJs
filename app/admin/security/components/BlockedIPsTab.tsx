@@ -6,6 +6,8 @@ import { Shield, RefreshCw, Plus, Trash2, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api/api'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface BlockedIP {
   id: string
@@ -19,6 +21,7 @@ interface BlockedIP {
 }
 
 export default function BlockedIPsTab() {
+  const { showConfirm } = useCustomAlert()
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -49,7 +52,7 @@ export default function BlockedIPsTab() {
 
   const handleAdd = async () => {
     if (!newIP.trim()) {
-      alert('Informe o endereço IP')
+      toast.error('Informe o endereço IP')
       return
     }
 
@@ -68,14 +71,20 @@ export default function BlockedIPsTab() {
       setNewReason('')
       await fetchBlockedIPs()
     } catch (error: any) {
-      alert(error.message || 'Erro ao bloquear IP')
+      toast.error(error.message || 'Erro ao bloquear IP')
     } finally {
       setAdding(false)
     }
   }
 
   const handleRemove = async (id: string, ip: string) => {
-    if (!confirm(`Desbloquear IP ${ip}?`)) return
+    const confirmed = await showConfirm({
+      title: 'Desbloquear IP',
+      message: `Desbloquear IP ${ip}?`,
+      confirmText: 'Desbloquear',
+      cancelText: 'Cancelar'
+    })
+    if (!confirmed) return
 
     setRemovingId(id)
     try {
@@ -85,7 +94,7 @@ export default function BlockedIPsTab() {
       
       setBlockedIPs(prev => prev.filter(item => item.id !== id))
     } catch (error) {
-      alert('Erro ao desbloquear IP')
+      toast.error('Erro ao desbloquear IP')
     } finally {
       setRemovingId(null)
     }

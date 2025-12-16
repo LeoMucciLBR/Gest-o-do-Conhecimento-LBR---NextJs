@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Search, Filter, UserCog, Mail, Calendar, Shield, X, Save, CheckCircle, Ban } from 'lucide-react'
+import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 type User = {
   id: string
@@ -24,6 +26,7 @@ type UsersResponse = {
 }
 
 export default function UsersManagementPage() {
+  const { showConfirm } = useCustomAlert()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -94,14 +97,22 @@ export default function UsersManagementPage() {
       setEditingUser(null)
     } catch (error) {
       console.error('Error updating user:', error)
-      alert('Erro ao atualizar usuário')
+      toast.error('Erro ao atualizar usuário')
     } finally {
       setSaving(false)
     }
   }
 
   const handleToggleStatus = async (user: User) => {
-    if (!confirm(`Tem certeza que deseja ${user.is_active ? 'desativar' : 'ativar'} este usuário?`)) return
+    const action = user.is_active ? 'desativar' : 'ativar'
+    const confirmed = await showConfirm({
+      title: `${user.is_active ? 'Desativar' : 'Ativar'} Usuário`,
+      message: `Tem certeza que deseja ${action} o usuário "${user.name || user.email}"?`,
+      confirmText: user.is_active ? 'Desativar' : 'Ativar',
+      cancelText: 'Cancelar',
+      isDangerous: user.is_active
+    })
+    if (!confirmed) return
 
     try {
       const res = await fetch(`/api/admin/users/${user.id}/toggle-status`, {
@@ -113,7 +124,7 @@ export default function UsersManagementPage() {
       await fetchUsers()
     } catch (error) {
       console.error('Error toggling status:', error)
-      alert('Erro ao alterar status do usuário')
+      toast.error('Erro ao alterar status do usuário')
     }
   }
 
@@ -150,10 +161,10 @@ export default function UsersManagementPage() {
       await fetchUsers()
       setIsCreateModalOpen(false)
       setCreateForm({ name: '', email: '', password: '', role: 'USER', area: '' })
-      alert('Usuário criado com sucesso!')
+      toast.success('Usuário criado com sucesso!')
     } catch (error: any) {
       console.error('Error creating user:', error)
-      alert(error.message || 'Erro ao criar usuário')
+      toast.error(error.message || 'Erro ao criar usuário')
     } finally {
       setCreating(false)
     }

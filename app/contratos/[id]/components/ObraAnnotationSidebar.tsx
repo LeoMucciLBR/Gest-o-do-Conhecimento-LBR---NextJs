@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { X, MapPin, Ruler, AlertTriangle, Plus, Trash2, Camera, Loader2, Save, ArrowLeft } from 'lucide-react'
 import ObraMapViewer, { type ObraWithGeometry } from './ObraMapViewer'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface ObraAnnotationSidebarProps {
   obra: ObraWithGeometry | null
@@ -37,6 +39,7 @@ interface NonConformityPhoto {
 
 export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoords, selectedNonConformityId, onBack }: ObraAnnotationSidebarProps) {
   const { user } = useAuth()
+  const { showConfirm } = useCustomAlert()
   const [nonConformities, setNonConformities] = useState<NonConformity[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -186,14 +189,21 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
       window.location.reload()
     } catch (error) {
       console.error('Error creating non-conformity:', error)
-      alert('Erro ao criar não conformidade')
+      toast.error('Erro ao criar não conformidade')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta não conformidade?')) return
+    const confirmed = await showConfirm({
+      title: 'Excluir Não Conformidade',
+      message: 'Tem certeza que deseja excluir esta não conformidade?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
 
     try {
       const res = await fetch(`/api/non-conformities/${id}`, {
@@ -405,8 +415,15 @@ export default function ObraAnnotationSidebar({ obra, isOpen, onClose, clickCoor
                   {/* Actions */}
                   <div className="pt-6 border-t border-slate-100 dark:border-gray-700">
                     <button
-                      onClick={() => {
-                        if (confirm('Tem certeza que deseja excluir esta não conformidade?')) {
+                      onClick={async () => {
+                        const confirmed = await showConfirm({
+                          title: 'Excluir Não Conformidade',
+                          message: 'Tem certeza que deseja excluir esta não conformidade?',
+                          confirmText: 'Excluir',
+                          cancelText: 'Cancelar',
+                          isDangerous: true
+                        })
+                        if (confirmed) {
                           handleDelete(selectedNc.id)
                           if (onBack) onBack()
                         }

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Toaster } from "sonner";
+import { AlertProvider } from "@/components/ui/CustomAlert";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -49,10 +50,13 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          {children}
+          <AlertProvider>
+            {children}
+          </AlertProvider>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

@@ -19,6 +19,7 @@ import { apiFetch } from "@/lib/api/api";
 import { VerificationModal } from "@/components/auth/VerificationModal";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { SecurityModal } from "@/components/auth/SecurityModal";
+import { toast } from 'sonner';
 
 const schema = z.object({
   email: z.string().min(1, "Informe seu e-mail").email("E-mail inválido"),
@@ -147,7 +148,7 @@ function LoginForm() {
 
   const handleSSOLogin = async (provider: string) => {
     setErrorMsg(null);
-    alert(`SSO "${provider}" ainda não implementado.`);
+    toast.info(`SSO "${provider}" ainda não implementado.`);
   };
 
   const handleCloseSecurityModal = () => {

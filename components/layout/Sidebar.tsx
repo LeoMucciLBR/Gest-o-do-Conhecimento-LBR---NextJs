@@ -42,11 +42,18 @@ function renderIcon(iconName: string, className = "h-5 w-5"): ReactNode {
         <line x1="3" y1="10" x2="21" y2="10" />
       </svg>
     ),
+    map: (
+      <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+        <line x1="8" y1="2" x2="8" y2="18" />
+        <line x1="16" y1="6" x2="16" y2="22" />
+      </svg>
+    ),
   };
   return icons[iconName] || icons.chart;
 }
 
-type SidebarProps = {
+export type SidebarProps = {
   sectionTitle: string;
   items: MenuItem[];
   user?: { name: string; email: string; photoUrl?: string };
@@ -77,6 +84,13 @@ const Icon = {
       <path d="M24 11C24 10.4477 23.5523 10 23 10H21C20.4477 10 20 10.4477 20 11C20 11.5523 20.4477 12 21 12H23C23.5523 12 24 11.5523 24 11Z"/>
       <path d="M4 11C4 10.4477 3.55228 10 3 10H1C0.447715 10 0 10.4477 0 11C0 11.5523 0.447715 12 1 12H3C3.55228 12 4 11.5523 4 11Z"/>
       <path d="M7.75736 16.2426C7.36684 15.8521 6.73367 15.8521 6.34315 16.2426L4.92893 17.6569C4.53841 18.0474 4.53841 18.6805 4.92893 19.0711C5.31946 19.4616 5.95262 19.4616 6.34315 19.0711L7.75736 17.6569C8.14788 17.2663 8.14788 16.6332 7.75736 16.2426Z"/>
+    </svg>
+  ),
+  map: (cls = "h-4 w-4"): ReactNode => (
+    <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
     </svg>
   ),
 };

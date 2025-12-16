@@ -6,6 +6,8 @@ import { Ban, RefreshCw, User, Mail, AlertCircle, Unlock } from 'lucide-react'
 import { apiFetch } from '@/lib/api/api'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface BlockedUser {
   id: string
@@ -23,6 +25,7 @@ interface BlockedUser {
 }
 
 export default function BlockedUsersTab() {
+  const { showConfirm } = useCustomAlert()
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [unblockinId, setUnblockingId] = useState<string | null>(null)
@@ -47,8 +50,14 @@ export default function BlockedUsersTab() {
     }
   }, [])
 
-  const handleUnblock = async (email: string, blockId: string) => {
-    if (!confirm('Tem certeza que deseja desbloquear este usuário?')) return
+  const handleUnblock = async (email: string, blockId: string, userName: string) => {
+    const confirmed = await showConfirm({
+      title: 'Desbloquear Usuário',
+      message: `Tem certeza que deseja desbloquear "${userName}"?`,
+      confirmText: 'Desbloquear',
+      cancelText: 'Cancelar'
+    })
+    if (!confirmed) return
 
     setUnblockingId(blockId)
     try {
@@ -58,7 +67,7 @@ export default function BlockedUsersTab() {
       
       setBlockedUsers(prev => prev.filter(u => u.id !== blockId))
     } catch (error) {
-      alert('Erro ao desbloquear usuário')
+      toast.error('Erro ao desbloquear usuário')
     } finally {
       setUnblockingId(null)
     }
@@ -159,7 +168,7 @@ export default function BlockedUsersTab() {
 
                   {/* Action Button */}
                   <button
-                    onClick={() => handleUnblock(blocked.email, blocked.id)}
+                    onClick={() => handleUnblock(blocked.email, blocked.id, blocked.user?.name || 'Usuário')}
                     disabled={unblockinId === blocked.id}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
                   >

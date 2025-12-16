@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import SoftwareModal from '@/app/contratos/[id]/software/components/SoftwareModal'
 import ProviderModal from '@/app/contratos/[id]/software/components/ProviderModal'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface Software {
   id: string
@@ -35,6 +36,7 @@ interface SoftwareExplorerProps {
 }
 
 export default function SoftwareExplorer({ contractId }: SoftwareExplorerProps) {
+  const { showConfirm } = useCustomAlert()
   const [software, setSoftware] = useState<Software | null>(null)
   const [loading, setLoading] = useState(true)
   const [showSoftwareModal, setShowSoftwareModal] = useState(false)
@@ -68,7 +70,16 @@ export default function SoftwareExplorer({ contractId }: SoftwareExplorerProps) 
   }
 
   async function handleDelete() {
-    if (!software || !confirm('Tem certeza que deseja excluir este software?')) return
+    if (!software) return
+    
+    const confirmed = await showConfirm({
+      title: 'Excluir Software',
+      message: `Tem certeza que deseja excluir "${software.name}"?`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
     
     try {
       const res = await fetch(`/api/contracts/${contractId}/software/${software.id}`, {

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api/api'
 import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 interface Pessoa {
   id: string
@@ -46,6 +47,7 @@ export default function EmpresaPessoasModal({
   empresaNome,
   empresaId
 }: EmpresaPessoasModalProps) {
+  const { showConfirm } = useCustomAlert()
   const [pessoas, setPessoas] = useState<Pessoa[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -117,8 +119,15 @@ export default function EmpresaPessoasModal({
     }
   }
 
-  const handleRemovePessoa = async (pessoaId: string) => {
-    if (!confirm('Deseja remover esta pessoa da empresa?')) return
+  const handleRemovePessoa = async (pessoaId: string, pessoaNome: string) => {
+    const confirmed = await showConfirm({
+      title: 'Remover Pessoa',
+      message: `Deseja remover "${pessoaNome}" da empresa?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
 
     try {
       await apiFetch(`/empresas/${empresaId}/pessoas?pessoaId=${pessoaId}`, {
@@ -326,7 +335,7 @@ export default function EmpresaPessoasModal({
                             </div>
                           </div>
                           <button
-                            onClick={() => handleRemovePessoa(pessoa.id)}
+                            onClick={() => handleRemovePessoa(pessoa.id, pessoa.full_name)}
                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                             title="Remover pessoa"
                           >

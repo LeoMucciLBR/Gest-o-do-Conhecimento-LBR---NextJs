@@ -39,8 +39,8 @@ export const MENUS = {
     },
     {
       title: "Obras",
-      icon: "activity",
-      href: "/engenharia/obras",
+      icon: "map",
+      href: "/mapa-obras",
       matchMode: "startsWith",
     },
     {

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { UserPlus, UserMinus, Shield, UserCircle2, X, Search, Check, Users2 } from 'lucide-react'
 import { apiFetch } from '@/lib/api/api'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 type Editor = {
   id: string
@@ -38,6 +40,7 @@ interface EditorsManagerProps {
 }
 
 export default function EditorsManager({ contractId, isOpen, onClose }: EditorsManagerProps) {
+  const { showConfirm } = useCustomAlert()
   const [editors, setEditors] = useState<Editor[]>([])
   const [creator, setCreator] = useState<Creator | null>(null)
   const [loading, setLoading] = useState(true)
@@ -97,14 +100,21 @@ export default function EditorsManager({ contractId, isOpen, onClose }: EditorsM
       setIsAddModalOpen(false)
       setSearchTerm('')
     } catch (error: any) {
-      alert(error.message || 'Erro ao adicionar editor')
+      toast.error(error.message || 'Erro ao adicionar editor')
     } finally {
       setAdding(false)
     }
   }
 
-  const handleRemoveEditor = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja remover este editor?')) return
+  const handleRemoveEditor = async (userId: string, userName: string) => {
+    const confirmed = await showConfirm({
+      title: 'Remover Editor',
+      message: `Tem certeza que deseja remover "${userName}" dos editores?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
 
     try {
       setRemoving(userId)
@@ -114,7 +124,7 @@ export default function EditorsManager({ contractId, isOpen, onClose }: EditorsM
       
       await loadEditors()
     } catch (error: any) {
-      alert(error.message || 'Erro ao remover editor')
+      toast.error(error.message || 'Erro ao remover editor')
     } finally {
       setRemoving(null)
     }
@@ -266,7 +276,7 @@ export default function EditorsManager({ contractId, isOpen, onClose }: EditorsM
                             </div>
                             
                             <button
-                              onClick={() => handleRemoveEditor(editor.user.id)}
+                              onClick={() => handleRemoveEditor(editor.user.id, editor.user.name)}
                               disabled={removing === editor.user.id}
                               className="p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all duration-300 hover:scale-110 disabled:opacity-50"
                               title="Remover editor"

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import PersonSearch from '@/components/ui/PersonSearch'
 import { Trash2, UserPlus } from 'lucide-react'
 import FichaModal from '@/components/modals/FichaModal'
+import { toast } from 'sonner'
 
 export interface TeamMember {
   id: string  // temporary UI ID
@@ -41,14 +42,14 @@ export default function EquipeSection({
     const personToAdd = person || selectedPerson
     
     if (!personToAdd) {
-      alert('Selecione uma pessoa da equipe')
+      toast.error('Selecione uma pessoa da equipe')
       return
     }
 
     // Check if already added
     const exists = formData.teamMembers.find(m => m.personId === personToAdd.id)
     if (exists) {
-      alert('Esta pessoa já foi adicionada à equipe')
+      toast.error('Esta pessoa já foi adicionada à equipe')
       // Reset
       setSelectedPerson(null)
       setSearchValue('')

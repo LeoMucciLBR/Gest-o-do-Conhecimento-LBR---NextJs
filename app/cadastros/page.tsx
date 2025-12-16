@@ -27,6 +27,7 @@ import AnimatedBackground from '@/components/ui/AnimatedBackground'
 import { toast } from 'sonner'
 import FichaFormModal from './fichas/components/FichaFormModal'
 import FichaViewModal from './fichas/components/FichaViewModal'
+import { useCustomAlert } from '@/components/ui/CustomAlert'
 
 type TabType = 'empresas' | 'clientes' | 'equipe' | 'fornecedores'
 
@@ -76,6 +77,9 @@ function CadastrosContent() {
   // Fichas state (Clientes & Equipe)
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [searchTermFicha, setSearchTermFicha] = useState('')
+  
+  // Custom Alert
+  const { showConfirm } = useCustomAlert()
   
   // Suppliers state
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -276,7 +280,14 @@ function CadastrosContent() {
   }
 
   const handleDeleteEmpresa = async (empresa: Empresa) => {
-    if (!confirm(`Deseja desativar a empresa "${empresa.nome}"?`)) return
+    const confirmed = await showConfirm({
+      title: 'Desativar Empresa',
+      message: `Deseja desativar a empresa "${empresa.nome}"?`,
+      confirmText: 'Desativar',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
     
     try {
       await apiFetch(`/empresas/${empresa.id}`, { method: 'DELETE' })
@@ -367,7 +378,14 @@ function CadastrosContent() {
   }
 
   const handleDeleteFicha = async (ficha: Ficha) => {
-    if (!confirm(`Deseja excluir "${ficha.nome}"?`)) return
+    const confirmed = await showConfirm({
+      title: 'Excluir Ficha',
+      message: `Deseja excluir "${ficha.nome}"?`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      isDangerous: true
+    })
+    if (!confirmed) return
     
     try {
       await apiFetch(`/fichas/${ficha.id}`, { method: 'DELETE' })

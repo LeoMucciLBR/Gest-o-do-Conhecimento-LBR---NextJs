@@ -5,6 +5,7 @@ import { Plus, Trash2, Building2, Percent, AlertCircle, Loader2, Users } from 'l
 import CustomSelect from '@/components/ui/CustomSelect'
 import { apiFetch } from '@/lib/api/api'
 import EmpresaPessoasModal from './EmpresaPessoasModal'
+import { toast } from 'sonner'
 
 export interface CompanyParticipation {
   id: string  // temporary UI ID
@@ -74,20 +75,20 @@ export default function EmpresasSection({
 
   const handleAddCompany = () => {
     if (!selectedCompany) {
-      alert('Selecione uma empresa')
+      toast.error('Selecione uma empresa')
       return
     }
 
     const percentageValue = parseFloat(percentage)
     if (!percentage || isNaN(percentageValue) || percentageValue <= 0 || percentageValue > 100) {
-      alert('Informe uma porcentagem válida entre 0 e 100')
+      toast.error('Informe uma porcentagem válida entre 0 e 100')
       return
     }
 
     // Check if company already exists
     const exists = companies.find(c => c.companyName === selectedCompany)
     if (exists) {
-      alert('Esta empresa já foi adicionada')
+      toast.error('Esta empresa já foi adicionada')
       return
     }
 
