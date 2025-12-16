@@ -114,17 +114,63 @@ export async function GET() {
           
           if (result && result.length > 0 && result[0].geojson) {
             geometria = JSON.parse(result[0].geojson)
+            console.log(`✅ Obra ${obra.id}: PostGIS segment query successful`)
           }
         } catch (err) {
           console.error(`Error calculating segment for obra ${obra.id}:`, err)
         }
         
-        // Fallback: use full rodovia geometry if segment query fails
+        // ENHANCED FALLBACK: If segment query fails, try to approximate using ST_LineSubstring
         if (!geometria && rodovia.geometria) {
           try {
-            geometria = JSON.parse(rodovia.geometria)
+            // Determine if federal or state highway
+            const isFederal = rodovia.nome?.startsWith('BR-') || /^\d+$/.test(rodovia.nome || '')
+            
+            if (isFederal) {
+              // For federal highways, try to cut the geometry using approximate fractions
+              const obraKmInicio = Number(obra.km_inicio)
+              const obraKmFim = Number(obra.km_fim)
+              const totalKmEstimate = 1000 // Conservative estimate for federal highways
+              
+              const startFraction = Math.max(0, Math.min(0.99, obraKmInicio / totalKmEstimate))
+              const endFraction = Math.max(startFraction + 0.01, Math.min(1, obraKmFim / totalKmEstimate))
+              
+              try {
+                const cutQuery = `
+                  SELECT ST_AsGeoJSON(
+                    ST_LineSubstring(
+                      geometria::geography::geometry,
+                      $1::float,
+                      $2::float
+                    )
+                  ) as geojson
+                  FROM rodovias
+                  WHERE id = $3
+                `
+                
+                const cutResult = await prisma.$queryRawUnsafe<any[]>(
+                  cutQuery,
+                  startFraction,
+                  endFraction,
+                  obra.rodovia_id
+                )
+                
+                if (cutResult && cutResult.length > 0 && cutResult[0].geojson) {
+                  geometria = JSON.parse(cutResult[0].geojson)
+                  console.log(`✅ Obra ${obra.id}: Approximated federal highway geometry (fractions: ${startFraction.toFixed(3)}-${endFraction.toFixed(3)})`)
+                }
+              } catch (cutErr) {
+                console.warn(`⚠️ Obra ${obra.id}: ST_LineSubstring failed, using full geometry`)
+              }
+            }
+            
+            // Final fallback: use full highway geometry
+            if (!geometria) {
+              geometria = JSON.parse(rodovia.geometria)
+              console.log(`⚠️ Obra ${obra.id}: Using full highway geometry as fallback`)
+            }
           } catch (e) {
-            console.error('Error parsing fallback geometry:', e)
+            console.error(`Error in fallback geometry for obra ${obra.id}:`, e)
           }
         }
       }
