@@ -339,6 +339,7 @@ export default function EmpresasSection({
         }}
         empresaNome={selectedEmpresa?.nome || ''}
         empresaId={selectedEmpresa?.id}
+        isLBR={(selectedEmpresa?.nome || '').toUpperCase().includes('LBR')}
       />
     </div>
   )

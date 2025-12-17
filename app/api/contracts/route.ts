@@ -178,6 +178,30 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
         const obrasToCreate = []
         
         for (const obra of dto.obras) {
+          // Handle PONTO_FIXO (fixed location with lat/lng)
+          if ((obra as any).tipoRodovia === 'PONTO_FIXO' && (obra as any).lat && (obra as any).lng) {
+            // Create obra with geometry using raw SQL
+            const lat = (obra as any).lat
+            const lng = (obra as any).lng
+            const nome = (obra as any).nome || 'Ponto Fixo'
+            
+            console.log(`📍 Creating fixed point obra: ${nome} at (${lat}, ${lng})`)
+            
+            await tx.$executeRaw`
+              INSERT INTO obras (contract_id, nome, km_inicio, km_fim, status, geometria)
+              VALUES (
+                ${contract.id}::uuid,
+                ${nome},
+                0,
+                0,
+                'Planejado',
+                ST_SetSRID(ST_MakePoint(${lng}::float, ${lat}::float), 4326)
+              )
+            `
+            console.log(`✅ Created fixed point obra: ${nome}`)
+            continue
+          }
+          
           let rodoviaidToUse = null
           
           if (obra.tipoRodovia === 'FEDERAL' && obra.brCodigo && obra.uf) {

@@ -33,6 +33,19 @@ export default function MapaObrasPage() {
       try {
         const data = await apiFetch<any[]>('/obras-geral')
         
+        console.log('[MapaObras] Raw API response:', data)
+        console.log('[MapaObras] Number of obras:', data?.length || 0)
+        
+        // Debug: log geometry types
+        if (data && data.length > 0) {
+          const geometryTypes = data.map(item => ({
+            id: item.id,
+            hasGeometria: !!item.geometria,
+            geometriaType: item.geometria?.type || 'NO_TYPE',
+          }))
+          console.log('[MapaObras] Geometry types:', geometryTypes)
+        }
+        
         const mappedObras: ObraWithContract[] = data.map(item => ({
           id: item.id,
           nome: item.nome || `Obra ${item.id}`,
@@ -45,6 +58,7 @@ export default function MapaObrasPage() {
           ...item
         }))
 
+        console.log('[MapaObras] Mapped obras with geometry:', mappedObras.filter(o => o.geometria).length)
         setObras(mappedObras)
       } catch (error) {
         console.error('[MapaObras] Failed to fetch obras:', error)
@@ -124,12 +138,12 @@ export default function MapaObrasPage() {
         <div className="flex-1 flex flex-col gap-4 min-h-0">
           {/* Map Section */}
           <div className="flex-1 min-h-[400px] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden relative">
-            <ObraMapViewer 
+          <ObraMapViewer 
               obras={obras}
-              height="100%"
+              height="600px"
               className="w-full h-full border-0 rounded-none shadow-none"
               onObraClick={handleObraClick}
-              hoveredObraId={highlightedObraIds.size > 0 ? Array.from(highlightedObraIds)[0] : null}
+              hoveredObraIds={highlightedObraIds.size > 0 ? highlightedObraIds : null}
             />
             
             {/* Legend */}

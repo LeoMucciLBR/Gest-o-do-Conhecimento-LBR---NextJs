@@ -392,6 +392,22 @@ export default function CadastroContrato() {
           kmFim: normalizarKm(o.kmFim),
         }))
 
+      // Se não for setor Rodovias e tiver localização com coordenadas, adicionar como ponto fixo
+      const isRodoviaSector = formData.setor === 'Rodovias'
+      if (!isRodoviaSector && formData.localizacao?.lat && formData.localizacao?.lng) {
+        obrasPayload.push({
+          tipoRodovia: 'PONTO_FIXO' as any,
+          uf: '',
+          rodoviaId: null,
+          brCodigo: null,
+          kmInicio: 0,
+          kmFim: 0,
+          lat: formData.localizacao.lat,
+          lng: formData.localizacao.lng,
+          nome: formData.localizacao.texto || 'Ponto Fixo',
+        } as any)
+      }
+
       const participants = buildParticipants(formData)
 
       // Build company participations payload

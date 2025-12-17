@@ -82,8 +82,12 @@ export async function GET() {
       return NextResponse.json([])
     }
 
+    // Separate obras with rodovia_id (trechos) from obras without (pontos fixos)
+    const obrasComRodovia = obrasRaw.filter(o => o.rodovia_id !== null)
+    const obrasSemRodovia = obrasRaw.filter(o => o.rodovia_id === null)
+
     // Buscar rodovias com geometria via raw SQL (PostGIS)
-    const rodoviasIds = [...new Set(obrasRaw.map(o => o.rodovia_id).filter(Boolean))]
+    const rodoviasIds = [...new Set(obrasComRodovia.map(o => o.rodovia_id).filter(Boolean))]
     
     let rodovias: any[] = []
     if (rodoviasIds.length > 0) {
@@ -95,8 +99,19 @@ export async function GET() {
 
     const rodoviasMap = new Map(rodovias.map(r => [r.id, r]))
 
-    // Processar cada obra e calcular geometria usando PostGIS
-    const obrasWithGeometry = await Promise.all(obrasRaw.map(async (obra) => {
+    // Buscar geometria direta das obras sem rodovia (pontos fixos)
+    let obrasPontoFixo: any[] = []
+    if (obrasSemRodovia.length > 0) {
+      const ids = obrasSemRodovia.map(o => o.id)
+      obrasPontoFixo = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT id, ST_AsGeoJSON(geometria) as geometria FROM obras WHERE id = ANY($1::int[]) AND geometria IS NOT NULL`,
+        ids
+      )
+    }
+    const obrasPontoFixoMap = new Map(obrasPontoFixo.map(o => [o.id, o.geometria ? JSON.parse(o.geometria) : null]))
+
+    // Processar cada obra COM rodovia e calcular geometria usando PostGIS
+    const obrasComGeometryPromises = obrasComRodovia.map(async (obra) => {
       const rodovia = obra.rodovia_id ? rodoviasMap.get(obra.rodovia_id) : null
       
       let geometria = null
@@ -184,13 +199,36 @@ export async function GET() {
         geometria,
         contract_id: obra.contract_id,
         contract_name: obra.contract?.name,
-        type: 'obra'
+        type: 'trecho' as const
       }
-    }))
-    
-    const obrasFiltered = obrasWithGeometry.filter(obra => obra.geometria !== null)
+    })
 
-    console.log(`[obras-geral] Returning ${obrasFiltered.length} obras with geometry (out of ${obrasRaw.length} total)`)
+    // Processar obras SEM rodovia (pontos fixos)
+    const obrasPontoFixoProcessed = obrasSemRodovia.map(obra => {
+      const geometria = obrasPontoFixoMap.get(obra.id) || null
+      
+      return {
+        id: obra.id,
+        nome: obra.nome || `Obra ${obra.id}`,
+        km_inicio: Number(obra.km_inicio) || 0,
+        km_fim: Number(obra.km_fim) || 0,
+        uf: obra.uf || '',
+        geometria,
+        contract_id: obra.contract_id,
+        contract_name: obra.contract?.name,
+        type: 'ponto_fixo' as const
+      }
+    })
+
+    const obrasComGeometry = await Promise.all(obrasComGeometryPromises)
+    
+    // Combinar todas as obras
+    const todasObras = [...obrasComGeometry, ...obrasPontoFixoProcessed]
+    const obrasFiltered = todasObras.filter(obra => obra.geometria !== null)
+
+    console.log(`[obras-geral] Returning ${obrasFiltered.length} obras with geometry:`)
+    console.log(`  - ${obrasComGeometry.filter(o => o.geometria).length} trechos de rodovia`)
+    console.log(`  - ${obrasPontoFixoProcessed.filter(o => o.geometria).length} pontos fixos`)
 
     return NextResponse.json(obrasFiltered)
   } catch (error) {
@@ -201,3 +239,4 @@ export async function GET() {
     )
   }
 }
+

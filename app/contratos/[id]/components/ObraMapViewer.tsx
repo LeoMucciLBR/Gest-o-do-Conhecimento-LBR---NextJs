@@ -28,6 +28,7 @@ interface ObraMapViewerProps {
   onObraClick?: (obra: ObraWithGeometry, coords?: { lat: number; lng: number }) => void
   selectedObraId?: number | null
   hoveredObraId?: number | null
+  hoveredObraIds?: Set<number> | null  // Support multiple hovered IDs
   nonConformities?: NonConformityMarker[]
   onNonConformityClick?: (nc: NonConformityMarker) => void
   height?: string
@@ -39,6 +40,7 @@ export default function ObraMapViewer({
   onObraClick, 
   selectedObraId,
   hoveredObraId,
+  hoveredObraIds,  // New prop for multiple IDs
   nonConformities = [], 
   onNonConformityClick,
   height = '600px',
@@ -113,6 +115,30 @@ export default function ObraMapViewer({
     }
   }
 
+  // Create custom icon for obras (pontos fixos)
+  const createObraPointIcon = (isSelected: boolean, isHovered: boolean): google.maps.Icon => {
+    const color = isSelected ? '#ef4444' : isHovered ? '#f97316' : '#22c55e' // green for obras
+    const size = isSelected ? 40 : isHovered ? 36 : 32
+    
+    // Create building/construction icon SVG
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5">
+        <path d="M3 21h18"/>
+        <path d="M5 21V7l8-4v18"/>
+        <path d="M19 21V11l-6-4"/>
+        <path d="M9 9h1"/>
+        <path d="M9 13h1"/>
+        <path d="M9 17h1"/>
+      </svg>
+    `
+    
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(size, size),
+      anchor: new google.maps.Point(size/2, size),
+    }
+  }
+
   // Filter obras with valid geometries
   const obrasWithGeometry = obras.filter((obra) => obra.geometria)
 
@@ -120,14 +146,38 @@ export default function ObraMapViewer({
   const addGeometryToBounds = (geometry: any, bounds: google.maps.LatLngBounds) => {
     if (!geometry || !geometry.type) return
 
-    if (geometry.type === 'LineString' && geometry.coordinates) {
-      geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
+    // Handle Feature wrapper
+    if (geometry.type === 'Feature' && geometry.geometry) {
+      addGeometryToBounds(geometry.geometry, bounds)
+      return
+    }
+
+    // Handle FeatureCollection wrapper
+    if (geometry.type === 'FeatureCollection' && geometry.features) {
+      geometry.features.forEach((feature: any) => {
+        addGeometryToBounds(feature, bounds)
+      })
+      return
+    }
+
+    // Handle Point geometry
+    if (geometry.type === 'Point' && geometry.coordinates) {
+      const [lng, lat] = geometry.coordinates
+      if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
         bounds.extend({ lat, lng })
+      }
+    } else if (geometry.type === 'LineString' && geometry.coordinates) {
+      geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
+        if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+          bounds.extend({ lat, lng })
+        }
       })
     } else if (geometry.type === 'MultiLineString' && geometry.coordinates) {
       geometry.coordinates.forEach((line: [number, number][]) => {
-        line.forEach(([lng, lat]) => {
-          bounds.extend({ lat, lng })
+        (line || []).forEach(([lng, lat]) => {
+          if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+            bounds.extend({ lat, lng })
+          }
         })
       })
     } else if (geometry.type === 'GeometryCollection' && geometry.geometries) {
@@ -195,6 +245,27 @@ export default function ObraMapViewer({
       
       if (hasPoints) {
         map.fitBounds(bounds)
+        
+        // Check if bounds are too small (single point or very close points)
+        // In this case, set a reasonable zoom level
+        const ne = bounds.getNorthEast()
+        const sw = bounds.getSouthWest()
+        const latDiff = Math.abs(ne.lat() - sw.lat())
+        const lngDiff = Math.abs(ne.lng() - sw.lng())
+        
+        // If the bounds are very small (single point or close points), set a better zoom
+        if (latDiff < 0.001 && lngDiff < 0.001) {
+          // Single point - set zoom to street level (15-16)
+          setTimeout(() => {
+            map.setZoom(15)
+          }, 100)
+        } else if (latDiff < 0.01 && lngDiff < 0.01) {
+          // Very small area - set zoom to neighborhood level
+          setTimeout(() => {
+            map.setZoom(14)
+          }, 100)
+        }
+        
         // Store the initial bounds to restore later
         setInitialBounds(bounds)
       }
@@ -205,14 +276,25 @@ export default function ObraMapViewer({
     setMap(null)
   }, [])
 
+  // Convert hoveredObraIds Set to a stable string for dependency comparison
+  const hoveredIdsKey = hoveredObraIds ? Array.from(hoveredObraIds).sort().join(',') : ''
+
   // Auto-zoom to hovered or selected obra
   useEffect(() => {
     if (!map) return
 
-    // Priority: Hovered > Selected > All
-    const targetId = hoveredObraId || selectedObraId
+    // Priority: hoveredObraId > hoveredObraIds (Set) > selectedObraId > All
+    let targetIds: number[] = []
+    
+    if (hoveredObraId) {
+      targetIds = [hoveredObraId]
+    } else if (hoveredObraIds && hoveredObraIds.size > 0) {
+      targetIds = Array.from(hoveredObraIds)
+    } else if (selectedObraId) {
+      targetIds = [selectedObraId]
+    }
 
-    if (!targetId) {
+    if (targetIds.length === 0) {
       if (initialBounds) {
         // Smooth transition back to showing all obras
         map.fitBounds(initialBounds)
@@ -220,12 +302,29 @@ export default function ObraMapViewer({
       return
     }
 
-    // If an obra is hovered or selected, zoom to it with smooth animation
-    const targetObra = obrasWithGeometry.find(o => o.id === targetId)
-    if (!targetObra || !targetObra.geometria) return
+    // Find all target obras
+    const targetObras = obrasWithGeometry.filter(o => targetIds.includes(o.id))
+    if (targetObras.length === 0) return
 
+    // Build bounds from all target obras
     const bounds = new google.maps.LatLngBounds()
-    addGeometryToBounds(targetObra.geometria, bounds)
+    let hasPoints = false
+    
+    targetObras.forEach(obra => {
+      if (obra.geometria) {
+        addGeometryToBounds(obra.geometria, bounds)
+        hasPoints = true
+      }
+    })
+    
+    if (!hasPoints) return
+    
+    // Check if it's a point geometry (single point or very small bounds)
+    const ne = bounds.getNorthEast()
+    const sw = bounds.getSouthWest()
+    const latDiff = Math.abs(ne.lat() - sw.lat())
+    const lngDiff = Math.abs(ne.lng() - sw.lng())
+    const isPointGeometry = latDiff < 0.001 && lngDiff < 0.001
     
     // Add padding for better visual appearance
     const padding = { top: 50, right: 50, bottom: 50, left: 50 }
@@ -233,10 +332,15 @@ export default function ObraMapViewer({
     // Smooth pan and zoom to the target obra
     map.fitBounds(bounds, padding)
     
-    // Optionally adjust zoom to not be too close with smooth animation
+    // Adjust zoom based on geometry type
     const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
       const currentZoom = map.getZoom()
-      if (currentZoom && currentZoom > 16) {
+      
+      if (isPointGeometry) {
+        // For point geometries, set zoom to street level (15)
+        map.setZoom(15)
+      } else if (currentZoom && currentZoom > 16) {
+        // For line geometries, cap zoom at 16
         map.setZoom(16)
       }
     })
@@ -244,7 +348,7 @@ export default function ObraMapViewer({
     return () => {
       google.maps.event.removeListener(listener)
     }
-  }, [hoveredObraId, selectedObraId, map, obrasWithGeometry, initialBounds])
+  }, [hoveredObraId, hoveredIdsKey, selectedObraId, map, obrasWithGeometry, initialBounds])
 
 
   if (!isLoaded) {
@@ -285,28 +389,130 @@ export default function ObraMapViewer({
         {obrasWithGeometry.map((obra) => {
           if (!obra.geometria) return null
           
-          // Support both LineString and MultiLineString
-          const isLineString = obra.geometria.type === 'LineString'
-          const isMultiLineString = obra.geometria.type === 'MultiLineString'
+          // Helper function to extract the actual geometry from various GeoJSON formats
+          const extractGeometry = (geom: any): any => {
+            if (!geom) return null
+            
+            // If no type, check if it's already coordinates array
+            if (!geom.type) {
+              console.warn(`Obra ${obra.id}: Geometry has no type property`)
+              return null
+            }
+            
+            // If it's already LineString, MultiLineString, or Point return as-is
+            if (geom.type === 'LineString' || geom.type === 'MultiLineString' || geom.type === 'Point') {
+              return geom
+            }
+            
+            // If it's a FeatureCollection, get the first feature's geometry
+            if (geom.type === 'FeatureCollection' && geom.features?.length > 0) {
+              return extractGeometry(geom.features[0])
+            }
+            
+            // If it's a Feature, get its geometry
+            if (geom.type === 'Feature' && geom.geometry) {
+              return extractGeometry(geom.geometry)
+            }
+            
+            // If it's a GeometryCollection, get the first geometry
+            if (geom.type === 'GeometryCollection' && geom.geometries?.length > 0) {
+              return extractGeometry(geom.geometries[0])
+            }
+            
+            // Unsupported type
+            console.warn(`Obra ${obra.id}: Unsupported geometry type '${geom.type}'`)
+            return null
+          }
+          
+          const geometry = extractGeometry(obra.geometria)
+          if (!geometry) {
+            return null
+          }
+          
+          // Support LineString, MultiLineString and Point
+          const isLineString = geometry.type === 'LineString'
+          const isMultiLineString = geometry.type === 'MultiLineString'
+          const isPoint = geometry.type === 'Point'
+          
+          // Handle Point geometry (ponto fixo) - render as Marker
+          if (isPoint && geometry.coordinates) {
+            const [lng, lat] = geometry.coordinates
+            if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+              return null
+            }
+            
+            const isSelected = obra.id === selectedObraId
+            const isHovered = obra.id === hoveredObraId || (hoveredObraIds?.has(obra.id) ?? false)
+            
+            return (
+              <Marker
+                key={`obra-point-${obra.id}`}
+                position={{ lat, lng }}
+                icon={createObraPointIcon(isSelected, isHovered)}
+                onClick={() => {
+                  if (onObraClick) {
+                    onObraClick(obra, { lat, lng })
+                  }
+                }}
+                title={`${obra.nome} (KM ${obra.km_inicio})`}
+              />
+            )
+          }
           
           if (!isLineString && !isMultiLineString) return null
 
           const isSelected = obra.id === selectedObraId
-          const isHovered = obra.id === hoveredObraId
+          // Check both single ID and multiple IDs Set
+          const isHovered = obra.id === hoveredObraId || (hoveredObraIds?.has(obra.id) ?? false)
           
           // Convert GeoJSON coordinates [lng, lat] to Google Maps format {lat, lng}
           let path: { lat: number; lng: number }[] = []
           
-          if (isLineString) {
-            path = obra.geometria.coordinates.map(([lng, lat]: [number, number]) => ({
-              lat,
-              lng,
-            }))
-          } else if (isMultiLineString) {
-            // MultiLineString: flatten all line segments into single path
-            path = obra.geometria.coordinates.flatMap((line: [number, number][]) =>
-              line.map(([lng, lat]) => ({ lat, lng }))
-            )
+          try {
+            if (isLineString && geometry.coordinates?.length > 0) {
+              path = geometry.coordinates
+                .filter((coord: any) => Array.isArray(coord) && coord.length >= 2)
+                .map(([lng, lat]: [number, number]) => ({
+                  lat: Number(lat),
+                  lng: Number(lng),
+                }))
+                .filter((p: any) => !isNaN(p.lat) && !isNaN(p.lng))
+            } else if (isMultiLineString && geometry.coordinates?.length > 0) {
+              // MultiLineString: flatten all line segments into single path
+              path = geometry.coordinates.flatMap((line: [number, number][]) =>
+                (line || [])
+                  .filter((coord: any) => Array.isArray(coord) && coord.length >= 2)
+                  .map(([lng, lat]: [number, number]) => ({ 
+                    lat: Number(lat), 
+                    lng: Number(lng) 
+                  }))
+              ).filter((p: any) => !isNaN(p.lat) && !isNaN(p.lng))
+            }
+          } catch (err) {
+            console.error(`Obra ${obra.id}: Error parsing coordinates:`, err)
+            return null
+          }
+          
+          // Skip if no valid path coordinates
+          if (!path || path.length < 2) {
+            console.warn(`Obra ${obra.id}: Not enough valid coordinates (${path?.length || 0})`)
+            return null
+          }
+          
+          // Final validation - ensure all points have valid lat/lng
+          const validPath = path.filter(p => 
+            p && 
+            typeof p.lat === 'number' && 
+            typeof p.lng === 'number' && 
+            !isNaN(p.lat) && 
+            !isNaN(p.lng) &&
+            p.lat >= -90 && p.lat <= 90 &&
+            p.lng >= -180 && p.lng <= 180
+          )
+          
+          if (validPath.length < 2) {
+            console.warn(`Obra ${obra.id}: Path validation failed (${path.length} -> ${validPath.length} valid points)`)
+            return null
           }
 
           // Determine colors and styles with smooth transitions
@@ -321,7 +527,7 @@ export default function ObraMapViewer({
           return (
             <Polyline
               key={`obra-${obra.id}`}
-              path={path}
+              path={validPath}
               options={{
                 strokeColor: currentColor,
                 strokeOpacity: currentOpacity,
