@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Toaster } from "sonner";
 import { AlertProvider } from "@/components/ui/CustomAlert";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
+import { OfflineProvider } from "@/components/offline";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -79,9 +80,11 @@ export default function RootLayout({
       <body className="antialiased">
         <QueryProvider>
           <ThemeProvider>
-            <AlertProvider>
-              {children}
-            </AlertProvider>
+            <OfflineProvider>
+              <AlertProvider>
+                {children}
+              </AlertProvider>
+            </OfflineProvider>
             <Toaster richColors position="top-right" />
           </ThemeProvider>
         </QueryProvider>
