@@ -10,8 +10,13 @@ export async function middleware(request: NextRequest) {
   // Check if the current path is public
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
   
-  // Allow public paths and API routes to pass through
-  if (isPublicPath || pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.startsWith('/images/')) {
+  // PWA files that should be publicly accessible
+  const isPWAFile = pathname === '/manifest.json' || 
+                    pathname === '/sw.js' || 
+                    pathname.startsWith('/icons/')
+  
+  // Allow public paths, PWA files, and API routes to pass through
+  if (isPublicPath || isPWAFile || pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.startsWith('/images/')) {
     return NextResponse.next()
   }
 
