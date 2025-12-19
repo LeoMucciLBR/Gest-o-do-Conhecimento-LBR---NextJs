@@ -29,23 +29,34 @@ import { useEffect, useState } from 'react'
 // Hook de Estado Offline
 // ============================================
 
+interface OfflineStateWithHydration extends OfflineState {
+  isHydrated: boolean
+}
+
 /**
  * Hook que monitora estado de conexão e sync
+ * 
+ * IMPORTANTE: Usa isHydrated para evitar hydration mismatch.
+ * O estado isOnline só é confiável após isHydrated=true
  */
-export function useOfflineState(): OfflineState {
+export function useOfflineState(): OfflineStateWithHydration {
+  // Inicia com valores seguros para SSR (sempre online=true para não mostrar banner)
   const [state, setState] = useState<OfflineState>({
     isOnline: true,
     pendingOperations: 0,
     lastSyncAt: null,
     syncInProgress: false,
   })
+  const [isHydrated, setIsHydrated] = useState(false)
   
   useEffect(() => {
+    // Marca como hidratado após o primeiro render no cliente
+    setIsHydrated(true)
     const unsubscribe = subscribeToState(setState)
     return unsubscribe
   }, [])
   
-  return state
+  return { ...state, isHydrated }
 }
 
 // ============================================
