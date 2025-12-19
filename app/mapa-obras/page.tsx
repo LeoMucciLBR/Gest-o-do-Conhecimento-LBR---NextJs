@@ -171,7 +171,7 @@ export default function MapaObrasPage() {
             
             <div className="overflow-auto h-[calc(100%-60px)]">
               <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-700/50 sticky top-0">
+                <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Contrato</th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Obras</th>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Toaster } from "sonner";
 import { AlertProvider } from "@/components/ui/CustomAlert";
+import { QueryProvider } from "@/lib/providers/QueryProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -30,6 +31,18 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <head>
+        {/* PWA Meta Tags */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="LBR App" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="application-name" content="Gestão do Conhecimento LBR" />
+        <meta name="msapplication-TileColor" content="#2f4982" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        
+        {/* Theme Script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -47,14 +60,31 @@ export default function RootLayout({
             `,
           }}
         />
+        
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.log('SW registration failed:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="antialiased">
-        <ThemeProvider>
-          <AlertProvider>
-            {children}
-          </AlertProvider>
-          <Toaster richColors position="top-right" />
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <AlertProvider>
+              {children}
+            </AlertProvider>
+            <Toaster richColors position="top-right" />
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

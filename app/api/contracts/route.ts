@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client'
 import type { CreateContractDto, ListContractsQuery } from '@/lib/types/contracts'
 import { logContractCreation } from '@/lib/services/auditLogger'
 import { createContractNotifications } from '@/lib/services/contractNotifications'
+import { logger } from '@/lib/logger'
 
 // Valid contract role values from Prisma enum
 const VALID_CONTRACT_ROLES = [
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     const dto: CreateContractDto = await request.json()
 
-console.log('CREATE /contracts payload =', JSON.stringify(dto))
+    logger.debug('CREATE /contracts payload', { dto })
 
     const contract = await prisma.$transaction(async (tx) => {
       // 1) Organization: get by ID or create/recycle by name (case-insensitive)
@@ -172,7 +173,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
 
       // 4) Obras linked to contract
       if (dto.obras?.length) {
-        console.log('Processing obras:', dto.obras)
+        logger.debug('Processing obras', { obras: dto.obras })
         
         // For FEDERAL highways, we need to find the rodovia_id from the rodovias table
         const obrasToCreate = []
@@ -185,7 +186,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
             const lng = (obra as any).lng
             const nome = (obra as any).nome || 'Ponto Fixo'
             
-            console.log(`📍 Creating fixed point obra: ${nome} at (${lat}, ${lng})`)
+            logger.debug('Creating fixed point obra', { nome, lat, lng })
             
             await tx.$executeRaw`
               INSERT INTO obras (contract_id, nome, km_inicio, km_fim, status, geometria)
@@ -198,7 +199,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
                 ST_SetSRID(ST_MakePoint(${lng}::float, ${lat}::float), 4326)
               )
             `
-            console.log(`✅ Created fixed point obra: ${nome}`)
+            logger.debug('Created fixed point obra', { nome })
             continue
           }
           
@@ -207,7 +208,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
           if (obra.tipoRodovia === 'FEDERAL' && obra.brCodigo && obra.uf) {
             // Find rodovia by codigo format: "BR-050"
             const codigo = `BR-${obra.brCodigo}`
-            console.log(`🔍 Searching for federal highway with codigo: "${codigo}", tipo: FEDERAL, uf: ${obra.uf}`)
+            logger.debug('Searching for federal highway', { codigo, tipo: 'FEDERAL', uf: obra.uf })
             
             const rodovia = await tx.rodovias.findFirst({
               where: {
@@ -218,11 +219,11 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
               select: { id: true, nome: true, codigo: true },
             })
             
-            console.log(`🔍 Search result:`, rodovia)
+            logger.debug('Highway search result', { rodovia })
             
             if (rodovia) {
               rodoviaidToUse = rodovia.id
-              console.log(`✅ Found federal highway BR-${obra.brCodigo} in ${obra.uf}: ID ${rodovia.id}, nome: ${rodovia.nome}`)
+              logger.debug('Found federal highway', { brCodigo: obra.brCodigo, uf: obra.uf, id: rodovia.id, nome: rodovia.nome })
             } else {
               // Try to find any federal highway in this UF to help debug
               const allFederalInUf = await tx.rodovias.findMany({
@@ -233,15 +234,14 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
                 select: { codigo: true, nome: true },
                 take: 5,
               })
-              console.log(`⚠️ Federal highway BR-${obra.brCodigo} not found in ${obra.uf} (looking for codigo: ${codigo})`)
-              console.log(`   Available federal highways in ${obra.uf}:`, allFederalInUf.map(r => `${r.codigo} (${r.nome})`).join(', '))
+              logger.warn('Federal highway not found', { brCodigo: obra.brCodigo, uf: obra.uf, codigo, availableHighways: allFederalInUf })
               continue // Skip this obra
             }
           } else if (obra.tipoRodovia === 'ESTADUAL' && obra.rodoviaId) {
             // Use rodoviaId directly for ESTADUAL
             rodoviaidToUse = Number(obra.rodoviaId)
           } else {
-            console.log('⚠️ Invalid obra configuration:', obra)
+            logger.warn('Invalid obra configuration', { obra })
             continue // Skip invalid obras
           }
           
@@ -261,18 +261,18 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
           }
         }
 
-        console.log('Obras to create:', obrasToCreate)
+        logger.debug('Obras to create', { count: obrasToCreate.length, obrasToCreate })
         
         if (obrasToCreate.length) {
           await tx.obras.createMany({ data: obrasToCreate })
-          console.log(`✅ Created ${obrasToCreate.length} obras`)
+          logger.debug('Created obras', { count: obrasToCreate.length })
         } else {
-          console.log('⚠️ No valid obras to create')
+          logger.warn('No valid obras to create')
         }
       }
 
       // 5) Handle laminaFile upload
-      console.log('Checking laminaFile:', { 
+      logger.debug('Checking laminaFile', { 
         hasLaminaFile: !!(dto as any).laminaFile,
         laminaFileKeys: (dto as any).laminaFile ? Object.keys((dto as any).laminaFile) : null
       })
@@ -280,7 +280,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
       if ((dto as any).laminaFile) {
         const { filename, contentType, data } = (dto as any).laminaFile
         
-        console.log('Processing laminaFile:', { filename, contentType, dataLength: data?.length })
+        logger.debug('Processing laminaFile', { filename, contentType, dataLength: data?.length })
         
         // Store as data URI (data URL includes the base64 prefix)
         const storageUrl = data.startsWith('data:') ? data : `data:${contentType || 'application/pdf'};base64,${data}`
@@ -295,13 +295,13 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
           },
         })
         
-        console.log('✅ Lamina document created successfully')
+        logger.debug('Lamina document created successfully')
       } else {
-        console.log('⚠️ No laminaFile in payload')
+        logger.debug('No laminaFile in payload')
       }
 
       // 6) Handle coverImageFile upload
-      console.log('Checking coverImageFile:', { 
+      logger.debug('Checking coverImageFile', { 
         hasCoverImageFile: !!(dto as any).coverImageFile,
         coverImageFileKeys: (dto as any).coverImageFile ? Object.keys((dto as any).coverImageFile) : null
       })
@@ -309,7 +309,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
       if ((dto as any).coverImageFile) {
         const { filename, contentType, data } = (dto as any).coverImageFile
         
-        console.log('Processing coverImageFile:', { filename, contentType, dataLength: data?.length })
+        logger.debug('Processing coverImageFile', { filename, contentType, dataLength: data?.length })
         
         // Store as data URI (data URL includes the base64 prefix)
         const storageUrl = data.startsWith('data:') ? data : `data:${contentType || 'image/jpeg'};base64,${data}`
@@ -324,13 +324,13 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
           },
         })
         
-        console.log('✅ Cover image document created successfully')
+        logger.debug('Cover image document created successfully')
       } else {
-        console.log('⚠️ No coverImageFile in payload')
+        logger.debug('No coverImageFile in payload')
       }
 
       // 7) Handle company participations
-      console.log('Checking companyParticipations:', {
+      logger.debug('Checking companyParticipations', {
         hasCompanyParticipations: !!(dto as any).companyParticipations,
         participationsLength: (dto as any).companyParticipations?.length || 0
       })
@@ -339,10 +339,10 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
         const participations = (dto as any).companyParticipations
 
         for (const cp of participations) {
-          // Try to find matching empresa by name
-          const empresa = await tx.$queryRawUnsafe<any[]>(`
-            SELECT id FROM empresas WHERE nome = $1 AND tipo = 'SOCIO' LIMIT 1
-          `, cp.companyName)
+          // Try to find matching empresa by name (using safe tagged template)
+          const empresa = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id FROM empresas WHERE nome = ${cp.companyName} AND tipo = 'SOCIO' LIMIT 1
+          `
           
           const empresaId = empresa?.[0]?.id || null
 
@@ -352,7 +352,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
           `
         }
 
-        console.log(`✅ Created ${participations.length} company participations`)
+        logger.debug('Created company participations', { count: participations.length })
       }
 
       return contract
@@ -376,7 +376,7 @@ console.log('CREATE /contracts payload =', JSON.stringify(dto))
 
     return NextResponse.json(contract, { status: 201 })
   } catch (error: any) {
-    console.error('Contract creation error:', error)
+    logger.error('Contract creation error', error)
     return NextResponse.json(
       { error: error.message || 'Erro ao criar contrato' },
       { status: 400 }
@@ -487,7 +487,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ total, page, pageSize, items: enriched })
   } catch (error) {
-    console.error('List contracts error:', error)
+    logger.error('List contracts error', error)
     return NextResponse.json(
       { error: 'Erro ao listar contratos' },
       { status: 500 }
