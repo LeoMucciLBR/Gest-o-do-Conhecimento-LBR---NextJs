@@ -43,7 +43,7 @@ import ObraAnnotationSidebar from './components/ObraAnnotationSidebar'
 import MeasurementExplorer from './measurements/components/MeasurementExplorer'
 import ProductExplorer from './products/components/ProductExplorer'
 import SoftwareExplorer from './software/components/SoftwareExplorer'
-import FichaModal from '@/components/modals/FichaModal'
+import PersonViewModal from '@/components/modals/PersonViewModal'
 import EditorsManager from './components/EditorsManager'
 import AuditLogViewer from './components/AuditLogViewer'
 import LessonsSection from './components/LessonsSection'
@@ -144,6 +144,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [fichaModalOpen, setFichaModalOpen] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
   const [selectedPersonType, setSelectedPersonType] = useState<'INTERNA' | 'CLIENTE'>('INTERNA')
+  const [selectedPersonRole, setSelectedPersonRole] = useState<{ role: string; customRole?: string | null } | null>(null)
   const [isFabOpen, setIsFabOpen] = useState(false)
   const [hoveredObraId, setHoveredObraId] = useState<number | null>(null)
   const [mapModalOpen, setMapModalOpen] = useState(false)
@@ -188,15 +189,17 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
     setSelectedNonConformityId(null)
   }
 
-  const handlePersonClick = (person: Person, type: 'INTERNA' | 'CLIENTE') => {
+  const handlePersonClick = (person: Person, type: 'INTERNA' | 'CLIENTE', role?: string, customRole?: string | null) => {
     setSelectedPerson(person)
     setSelectedPersonType(type)
+    setSelectedPersonRole(role ? { role, customRole } : null)
     setFichaModalOpen(true)
   }
 
   const handleFichaModalClose = () => {
     setFichaModalOpen(false)
     setSelectedPerson(null)
+    setSelectedPersonRole(null)
   }
 
   useEffect(() => {
@@ -434,10 +437,10 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                 <span className="text-sm text-slate-700 dark:text-gray-300 font-medium">Status:</span>
                 <span
                   className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg ${contract.status === 'Ativo'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                      : contract.status === 'Pendente'
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
-                        : 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                    : contract.status === 'Pendente'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                      : 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
                     } animate-pulse`}
                 >
                   {contract.status}
@@ -586,8 +589,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                               <div
                                 key={company.id}
                                 className={`${isLeader
-                                    ? 'bg-white dark:bg-gray-800 border-2 border-amber-400 dark:border-amber-500'
-                                    : 'bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:border-[#2f4982]/50 dark:hover:border-[#2f4982]/50'
+                                  ? 'bg-white dark:bg-gray-800 border-2 border-amber-400 dark:border-amber-500'
+                                  : 'bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:border-[#2f4982]/50 dark:hover:border-[#2f4982]/50'
                                   } rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 relative overflow-hidden cursor-pointer`}
                                 style={{
                                   animationDelay: `${index * 100}ms`
@@ -672,8 +675,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                       }
                     }}
                     className={`group relative overflow-hidden rounded-2xl p-4 sm:p-6 transition-all duration-500 transform hover:scale-105 border border-slate-100 dark:border-gray-700 ${selectedSection === section.id
-                        ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
-                        : 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl'
+                      ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
+                      : 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl'
                       } animate-in fade-in slide-in-from-bottom duration-700`}
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
@@ -774,7 +777,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                       clienteParticipants.map((p, i) => (
                         <div
                           key={i}
-                          onClick={() => handlePersonClick(p.person, 'CLIENTE')}
+                          onClick={() => handlePersonClick(p.person, 'CLIENTE', p.role, p.custom_role)}
                           className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10 cursor-pointer"
                         >
                           <p className="text-xs font-bold text-secondary dark:text-secondary-light mb-2 uppercase tracking-wider">
@@ -808,7 +811,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                       equipeParticipants.map((p, i) => (
                         <div
                           key={i}
-                          onClick={() => handlePersonClick(p.person, 'INTERNA')}
+                          onClick={() => handlePersonClick(p.person, 'INTERNA', p.role, p.custom_role)}
                           className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10 cursor-pointer"
                         >
                           <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wider">
@@ -1023,46 +1026,14 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
           onBack={() => setSelectedNonConformityId(null)}
         />
 
-        {/* Ficha Modal */}
-        <FichaModal
+        {/* Person View Modal */}
+        <PersonViewModal
           isOpen={fichaModalOpen}
           onClose={handleFichaModalClose}
-          onSuccess={() => { }}
-          mode="view"
-          initialData={selectedPerson ? {
-            id: selectedPerson.id,
-            nome: selectedPerson.full_name,
-            email: selectedPerson.email || '',
-            celular: selectedPerson.phone || '',
-            cargo_cliente: selectedPerson.office || '',
-            tipo: selectedPersonType,
-            foto_perfil_url: '',
-            // Add other default fields that might be needed
-            cpf: '',
-            rg: '',
-            data_nascimento: '',
-            nacionalidade: '',
-            estado_civil: '',
-            genero: '',
-            telefone: '',
-            endereco: '',
-            numero: '',
-            complemento: '',
-            bairro: '',
-            cidade: '',
-            estado: '',
-            cep: '',
-            profissao: '',
-            registro_profissional: '',
-            especialidades: '',
-            resumo_profissional: '',
-            idiomas: '',
-            observacoes: '',
-            experiencias: [],
-            formacoes: [],
-            certificados: [],
-          } : undefined}
-          defaultTipo={selectedPersonType}
+          person={selectedPerson}
+          personType={selectedPersonType}
+          role={selectedPersonRole?.role}
+          customRole={selectedPersonRole?.customRole}
         />
 
         {/* Mobile Action FAB - Only show if user can edit or manage editors */}
