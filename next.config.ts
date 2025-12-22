@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
-  
+
   transpilePackages: ["@mui/material", "@mui/icons-material"],
-  
+
   images: {
     remotePatterns: [],
   },
@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
     },
     middlewareClientMaxBodySize: '50mb',
   },
-  
+
   async headers() {
     return [
       {
@@ -57,7 +57,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://maps.googleapis.com https://*.neon.tech wss://*.neon.tech",
+              "connect-src 'self' https://maps.googleapis.com https://*.neon.tech wss://*.neon.tech https://servicos.dnit.gov.br",
               "frame-src 'self' https://app.powerbi.com",
               "frame-ancestors 'self'",
               "form-action 'self'",
