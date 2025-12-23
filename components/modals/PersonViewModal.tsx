@@ -299,82 +299,109 @@ export default function PersonViewModal({
           .join(', ')
       : ''
 
+    // Verificar se tem conteúdo
+    const hasContent = ficha && (
+      ficha.cpf || ficha.rg || ficha.data_nascimento || enderecoCompleto ||
+      ficha.resumo_profissional || ficha.especialidades || ficha.idiomas ||
+      ficha.experiencias?.length > 0 || ficha.formacoes?.length > 0 ||
+      ficha.certificados?.length > 0 || ficha.observacoes
+    )
+
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500"
+          className="absolute top-5 right-5 z-10 p-2.5 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all shadow-lg"
         >
           <X className="w-5 h-5" />
         </button>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-[#2f4982] animate-spin" />
-            <p className="mt-3 text-gray-500">Carregando currículo...</p>
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full border-4 border-[#2f4982]/20" />
+              <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-[#2f4982] animate-spin" />
+            </div>
+            <p className="mt-6 text-gray-500 font-medium">Carregando currículo...</p>
           </div>
         ) : !ficha ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <User className="w-16 h-16 text-gray-300 mb-4" />
-            <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300">Ficha não encontrada</h3>
-            <p className="text-sm text-gray-500 mt-1">Esta pessoa ainda não possui uma ficha cadastrada</p>
-            <button
-              onClick={onClose}
-              className="mt-6 px-6 py-2.5 bg-[#2f4982] hover:bg-[#263d69] text-white text-sm font-medium rounded-xl"
-            >
-              Fechar
-            </button>
+          <div className="flex flex-col items-center justify-center py-32 px-8">
+            <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
+              <User className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Ficha não encontrada</h3>
+            <p className="text-gray-500 mt-2 text-center max-w-sm">
+              Esta pessoa ainda não possui uma ficha cadastrada no sistema
+            </p>
           </div>
         ) : (
           <>
-            {/* Header do CV */}
-            <div className="bg-gradient-to-r from-[#2f4982] to-blue-600 p-6 text-white">
-              <div className="flex items-start gap-5">
-                {/* Foto */}
-                {ficha.foto_perfil_url ? (
-                  <img
-                    src={ficha.foto_perfil_url}
-                    alt={ficha.nome}
-                    className="w-24 h-24 rounded-xl object-cover border-2 border-white/30 shadow-lg"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-xl bg-white/20 flex items-center justify-center text-3xl font-bold">
-                    {getInitials(ficha.nome || person.full_name)}
-                  </div>
-                )}
-
-                {/* Info principal */}
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold">{ficha.nome || person.full_name}</h1>
-                  <p className="text-lg text-white/90 mt-1">{ficha.profissao || displayRole}</p>
-                  
-                  {/* Registro profissional */}
-                  {ficha.registro_profissional && (
-                    <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-white/20 rounded-lg text-sm">
-                      <FileText className="w-4 h-4" />
-                      {ficha.registro_profissional}
+            {/* Header Premium */}
+            <div className="relative px-8 pt-8 pb-6">
+              {/* Background decorativo */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982]/5 via-blue-500/5 to-purple-500/5" />
+              
+              <div className="relative flex items-start gap-6">
+                {/* Foto com borda gradiente */}
+                <div className="relative flex-shrink-0">
+                  <div className="absolute -inset-1 bg-gradient-to-br from-[#2f4982] to-blue-500 rounded-2xl opacity-75" />
+                  {ficha.foto_perfil_url ? (
+                    <img
+                      src={ficha.foto_perfil_url}
+                      alt={ficha.nome}
+                      className="relative w-28 h-28 rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <div className="relative w-28 h-28 rounded-2xl bg-gradient-to-br from-[#2f4982] to-blue-600 flex items-center justify-center text-4xl font-bold text-white">
+                      {getInitials(ficha.nome || person.full_name)}
                     </div>
                   )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0 pt-2">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {ficha.nome || person.full_name}
+                  </h1>
+                  <p className="text-xl text-[#2f4982] dark:text-blue-400 font-semibold mt-1">
+                    {ficha.profissao || displayRole}
+                  </p>
+                  
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {ficha.registro_profissional && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-full text-sm font-semibold">
+                        <FileText className="w-4 h-4" />
+                        {ficha.registro_profissional}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Contatos */}
-                  <div className="flex flex-wrap gap-3 mt-3 text-sm text-white/80">
+                  <div className="flex flex-wrap gap-4 mt-4">
                     {(ficha.email || person.email) && (
-                      <a href={`mailto:${ficha.email || person.email}`} className="flex items-center gap-1.5 hover:text-white">
-                        <Mail className="w-4 h-4" />
-                        {ficha.email || person.email}
+                      <a 
+                        href={`mailto:${ficha.email || person.email}`} 
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:text-[#2f4982] hover:bg-[#2f4982]/5 transition-all shadow-sm hover:shadow-md"
+                      >
+                        <Mail className="w-4 h-4 text-[#2f4982]" />
+                        <span className="truncate max-w-[200px]">{ficha.email || person.email}</span>
                       </a>
                     )}
                     {(ficha.celular || ficha.telefone || person.phone) && (
-                      <a href={`tel:${ficha.celular || ficha.telefone || person.phone}`} className="flex items-center gap-1.5 hover:text-white">
-                        <Phone className="w-4 h-4" />
+                      <a 
+                        href={`tel:${ficha.celular || ficha.telefone || person.phone}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:text-[#2f4982] hover:bg-[#2f4982]/5 transition-all shadow-sm hover:shadow-md"
+                      >
+                        <Phone className="w-4 h-4 text-[#2f4982]" />
                         {ficha.celular || ficha.telefone || person.phone}
                       </a>
                     )}
@@ -384,153 +411,210 @@ export default function PersonViewModal({
             </div>
 
             {/* Corpo do CV - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              
-              {/* DADOS PESSOAIS */}
-              {(ficha.cpf || ficha.rg || ficha.data_nascimento || ficha.nacionalidade || ficha.estado_civil || ficha.genero) && (
-                <CVSection icon={<User />} title="Dados Pessoais">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {ficha.cpf && <DataField label="CPF" value={ficha.cpf} />}
-                    {ficha.rg && <DataField label="RG" value={ficha.rg} />}
-                    {ficha.data_nascimento && <DataField label="Nascimento" value={formatDate(ficha.data_nascimento)} />}
-                    {ficha.nacionalidade && <DataField label="Nacionalidade" value={ficha.nacionalidade} />}
-                    {ficha.estado_civil && <DataField label="Estado Civil" value={ficha.estado_civil} />}
-                    {ficha.genero && <DataField label="Gênero" value={ficha.genero} />}
+            <div className="flex-1 overflow-y-auto">
+              {!hasContent ? (
+                <div className="flex flex-col items-center justify-center py-16 px-8">
+                  <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                    <FileText className="w-10 h-10 text-gray-400" />
                   </div>
-                </CVSection>
-              )}
-
-              {/* ENDEREÇO */}
-              {enderecoCompleto && (
-                <CVSection icon={<Home />} title="Endereço">
-                  <p className="text-gray-700 dark:text-gray-300">{enderecoCompleto}</p>
-                </CVSection>
-              )}
-
-              {/* RESUMO PROFISSIONAL */}
-              {ficha.resumo_profissional && (
-                <CVSection icon={<BookOpen />} title="Resumo Profissional">
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{ficha.resumo_profissional}</p>
-                </CVSection>
-              )}
-
-              {/* ESPECIALIDADES */}
-              {ficha.especialidades && (
-                <CVSection icon={<Star />} title="Especialidades">
-                  <div className="flex flex-wrap gap-2">
-                    {ficha.especialidades.split(',').map((spec: string, i: number) => (
-                      <span key={i} className="px-3 py-1.5 bg-[#2f4982]/10 text-[#2f4982] dark:text-blue-400 rounded-lg text-sm font-medium">
-                        {spec.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </CVSection>
-              )}
-
-              {/* IDIOMAS */}
-              {ficha.idiomas && (
-                <CVSection icon={<Languages />} title="Idiomas">
-                  <div className="flex flex-wrap gap-2">
-                    {ficha.idiomas.split(',').map((lang: string, i: number) => (
-                      <span key={i} className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">
-                        {lang.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </CVSection>
-              )}
-
-              {/* EXPERIÊNCIA PROFISSIONAL */}
-              {ficha.experiencias?.length > 0 && (
-                <CVSection icon={<Briefcase />} title="Experiência Profissional">
-                  <div className="space-y-4">
-                    {ficha.experiencias.map((exp: any, i: number) => (
-                      <div key={i} className="relative pl-5 border-l-2 border-[#2f4982]">
-                        <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full bg-[#2f4982] -translate-x-[7px]" />
-                        <h4 className="font-semibold text-gray-900 dark:text-white">{exp.cargo}</h4>
-                        <p className="text-[#2f4982] dark:text-blue-400 font-medium">{exp.empresa}</p>
-                        {(exp.dataInicio || exp.dataFim) && (
-                          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {exp.dataInicio || ''} {exp.dataFim && `→ ${exp.dataFim}`} {exp.atual && '(Atual)'}
-                          </p>
-                        )}
-                        {exp.descricao && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{exp.descricao}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CVSection>
-              )}
-
-              {/* FORMAÇÃO ACADÊMICA */}
-              {ficha.formacoes?.length > 0 && (
-                <CVSection icon={<GraduationCap />} title="Formação Acadêmica">
-                  <div className="space-y-4">
-                    {ficha.formacoes.map((form: any, i: number) => (
-                      <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">{form.curso}</h4>
-                        <p className="text-gray-600 dark:text-gray-400">{form.instituicao}</p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {form.nivel && (
-                            <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs font-medium">
-                              {form.nivel}
-                            </span>
-                          )}
-                          {form.dataFormacao && (
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {form.dataFormacao}
-                            </span>
-                          )}
+                  <p className="text-gray-500 text-center">
+                    Esta ficha ainda não possui informações detalhadas
+                  </p>
+                </div>
+              ) : (
+                <div className="px-8 pb-8 space-y-6">
+                  {/* DADOS PESSOAIS */}
+                  {(ficha.cpf || ficha.rg || ficha.data_nascimento || ficha.nacionalidade || ficha.estado_civil || ficha.genero) && (
+                    <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        <div className="p-2 bg-gradient-to-br from-[#2f4982] to-blue-600 rounded-xl text-white">
+                          <User className="w-5 h-5" />
                         </div>
-                        {form.descricao && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{form.descricao}</p>
-                        )}
+                        Dados Pessoais
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {ficha.cpf && <DataField label="CPF" value={ficha.cpf} />}
+                        {ficha.rg && <DataField label="RG" value={ficha.rg} />}
+                        {ficha.data_nascimento && <DataField label="Nascimento" value={formatDate(ficha.data_nascimento)} />}
+                        {ficha.nacionalidade && <DataField label="Nacionalidade" value={ficha.nacionalidade} />}
+                        {ficha.estado_civil && <DataField label="Estado Civil" value={ficha.estado_civil} />}
+                        {ficha.genero && <DataField label="Gênero" value={ficha.genero} />}
                       </div>
-                    ))}
-                  </div>
-                </CVSection>
-              )}
+                    </div>
+                  )}
 
-              {/* CERTIFICADOS */}
-              {ficha.certificados?.length > 0 && (
-                <CVSection icon={<Award />} title="Certificações">
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {ficha.certificados.map((cert: any, i: number) => (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                        <div className="p-2 bg-[#2f4982]/10 rounded-lg">
-                          <Award className="w-5 h-5 text-[#2f4982]" />
+                  {/* ENDEREÇO */}
+                  {enderecoCompleto && (
+                    <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        <div className="p-2 bg-gradient-to-br from-[#2f4982] to-blue-600 rounded-xl text-white">
+                          <Home className="w-5 h-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white truncate">{cert.nome}</p>
-                          {cert.instituicao && (
-                            <p className="text-xs text-gray-500 truncate">{cert.instituicao}</p>
-                          )}
+                        Endereço
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300">{enderecoCompleto}</p>
+                    </div>
+                  )}
+
+                  {/* RESUMO PROFISSIONAL */}
+                  {ficha.resumo_profissional && (
+                    <div className="bg-gradient-to-r from-[#2f4982]/5 to-blue-500/5 dark:from-[#2f4982]/10 dark:to-blue-500/10 rounded-2xl p-6 border-l-4 border-[#2f4982]">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        <div className="p-2 bg-gradient-to-br from-[#2f4982] to-blue-600 rounded-xl text-white">
+                          <BookOpen className="w-5 h-5" />
                         </div>
+                        Resumo Profissional
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{ficha.resumo_profissional}</p>
+                    </div>
+                  )}
+
+                  {/* GRID: ESPECIALIDADES & IDIOMAS */}
+                  {(ficha.especialidades || ficha.idiomas) && (
+                    <div className="grid sm:grid-cols-2 gap-6">
+                      {ficha.especialidades && (
+                        <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                          <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                            <div className="p-2 bg-gradient-to-br from-[#2f4982] to-blue-600 rounded-xl text-white">
+                              <Star className="w-5 h-5" />
+                            </div>
+                            Especialidades
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {ficha.especialidades.split(',').map((spec: string, i: number) => (
+                              <span key={i} className="px-3 py-1.5 bg-[#2f4982]/10 text-[#2f4982] dark:text-blue-400 rounded-full text-sm font-medium">
+                                {spec.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {ficha.idiomas && (
+                        <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                          <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                            <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl text-white">
+                              <Languages className="w-5 h-5" />
+                            </div>
+                            Idiomas
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {ficha.idiomas.split(',').map((lang: string, i: number) => (
+                              <span key={i} className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
+                                {lang.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* EXPERIÊNCIA PROFISSIONAL */}
+                  {ficha.experiencias?.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-6">
+                        <div className="p-2 bg-gradient-to-br from-[#2f4982] to-blue-600 rounded-xl text-white">
+                          <Briefcase className="w-5 h-5" />
+                        </div>
+                        Experiência Profissional
+                      </h3>
+                      <div className="space-y-6">
+                        {ficha.experiencias.map((exp: any, i: number) => (
+                          <div key={i} className="relative pl-8">
+                            {/* Linha do tempo */}
+                            {i < ficha.experiencias.length - 1 && (
+                              <div className="absolute left-3 top-8 bottom-[-24px] w-0.5 bg-gradient-to-b from-[#2f4982] to-[#2f4982]/20" />
+                            )}
+                            <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-[#2f4982] flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            </div>
+                            
+                            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                              <h4 className="font-bold text-gray-900 dark:text-white text-lg">{exp.cargo}</h4>
+                              <p className="text-[#2f4982] dark:text-blue-400 font-semibold">{exp.empresa}</p>
+                              {(exp.dataInicio || exp.dataFim) && (
+                                <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-2">
+                                  <Calendar className="w-4 h-4" />
+                                  {exp.dataInicio || ''} {exp.dataFim && `→ ${exp.dataFim}`} {exp.atual && '(Atual)'}
+                                </p>
+                              )}
+                              {exp.descricao && (
+                                <p className="text-gray-600 dark:text-gray-400 mt-3 leading-relaxed">{exp.descricao}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CVSection>
-              )}
+                    </div>
+                  )}
 
-              {/* OBSERVAÇÕES */}
-              {ficha.observacoes && (
-                <CVSection icon={<FileText />} title="Observações">
-                  <p className="text-gray-700 dark:text-gray-300">{ficha.observacoes}</p>
-                </CVSection>
-              )}
-            </div>
+                  {/* FORMAÇÃO ACADÊMICA */}
+                  {ficha.formacoes?.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl text-white">
+                          <GraduationCap className="w-5 h-5" />
+                        </div>
+                        Formação Acadêmica
+                      </h3>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        {ficha.formacoes.map((form: any, i: number) => (
+                          <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                            <h4 className="font-bold text-gray-900 dark:text-white">{form.curso}</h4>
+                            <p className="text-gray-600 dark:text-gray-400">{form.instituicao}</p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {form.nivel && (
+                                <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-semibold">
+                                  {form.nivel}
+                                </span>
+                              )}
+                              {form.dataFormacao && (
+                                <span className="text-xs text-gray-500 flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full">
+                                  <Calendar className="w-3 h-3" />
+                                  {form.dataFormacao}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={onClose}
-                className="w-full py-3 bg-[#2f4982] hover:bg-[#263d69] text-white font-medium rounded-xl transition-colors"
-              >
-                Fechar
-              </button>
+                  {/* CERTIFICADOS */}
+                  {ficha.certificados?.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl text-white">
+                          <Award className="w-5 h-5" />
+                        </div>
+                        Certificações
+                      </h3>
+                      <div className="flex flex-wrap gap-3">
+                        {ficha.certificados.map((cert: any, i: number) => (
+                          <div key={i} className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-xl">
+                            <Award className="w-4 h-4" />
+                            <span className="font-medium">{cert.nome}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OBSERVAÇÕES */}
+                  {ficha.observacoes && (
+                    <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-6 shadow-sm">
+                      <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                        <div className="p-2 bg-gradient-to-br from-gray-500 to-gray-700 rounded-xl text-white">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        Observações
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300">{ficha.observacoes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
