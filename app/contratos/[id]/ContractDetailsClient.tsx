@@ -33,23 +33,49 @@ import {
   Image,
   X,
   Maximize2,
+  Loader2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { apiFetch } from '@/lib/api/api'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
-import ObraMapViewer, { type ObraWithGeometry, type NonConformityMarker } from './components/ObraMapViewer'
-import LocationMapViewer from './components/LocationMapViewer'
-import ObraAnnotationSidebar from './components/ObraAnnotationSidebar'
-import MeasurementExplorer from './measurements/components/MeasurementExplorer'
-import ProductExplorer from './products/components/ProductExplorer'
-import SoftwareExplorer from './software/components/SoftwareExplorer'
-import FichaModal from '@/components/modals/FichaModal'
+import PersonViewModal from '@/components/modals/PersonViewModal'
 import EditorsManager from './components/EditorsManager'
 import AuditLogViewer from './components/AuditLogViewer'
-import LessonsSection from './components/LessonsSection'
 import EmpresaPessoasModal from '@/app/engenharia/cadastrocontratos/components/EmpresaPessoasModal'
 
-// Dynamic import to avoid SSR issues with react-pdf
+// Type imports for ObraMapViewer
+import type { ObraWithGeometry, NonConformityMarker } from './components/ObraMapViewer'
+
+// Loading component for lazy-loaded sections
+const SectionLoader = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="w-8 h-8 animate-spin text-[#2f4982]" />
+    <span className="ml-3 text-slate-600 dark:text-gray-400">Carregando...</span>
+  </div>
+)
+
+// OPTIMIZATION: Dynamic imports for heavy components (only load when needed)
+const ObraMapViewer = dynamic(() => import('./components/ObraMapViewer'), { 
+  ssr: false,
+  loading: () => <SectionLoader />
+})
+const LocationMapViewer = dynamic(() => import('./components/LocationMapViewer'), { 
+  ssr: false,
+  loading: () => <SectionLoader />
+})
+const ObraAnnotationSidebar = dynamic(() => import('./components/ObraAnnotationSidebar'), { ssr: false })
+const MeasurementExplorer = dynamic(() => import('./measurements/components/MeasurementExplorer'), {
+  loading: () => <SectionLoader />
+})
+const ProductExplorer = dynamic(() => import('./products/components/ProductExplorer'), {
+  loading: () => <SectionLoader />
+})
+const SoftwareExplorer = dynamic(() => import('./software/components/SoftwareExplorer'), {
+  loading: () => <SectionLoader />
+})
+const LessonsSection = dynamic(() => import('./components/LessonsSection'), {
+  loading: () => <SectionLoader />
+})
 const PDFViewerModal = dynamic(() => import('@/components/ui/PDFViewerModal'), { ssr: false })
 
 type Contract = {
@@ -144,6 +170,8 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
   const [fichaModalOpen, setFichaModalOpen] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
   const [selectedPersonType, setSelectedPersonType] = useState<'INTERNA' | 'CLIENTE'>('INTERNA')
+  const [selectedPersonRole, setSelectedPersonRole] = useState<string | undefined>(undefined)
+  const [selectedPersonCustomRole, setSelectedPersonCustomRole] = useState<string | null | undefined>(undefined)
   const [isFabOpen, setIsFabOpen] = useState(false)
   const [hoveredObraId, setHoveredObraId] = useState<number | null>(null)
   const [mapModalOpen, setMapModalOpen] = useState(false)
@@ -188,15 +216,19 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
     setSelectedNonConformityId(null)
   }
 
-  const handlePersonClick = (person: Person, type: 'INTERNA' | 'CLIENTE') => {
+  const handlePersonClick = (person: Person, type: 'INTERNA' | 'CLIENTE', role?: string, customRole?: string | null) => {
     setSelectedPerson(person)
     setSelectedPersonType(type)
+    setSelectedPersonRole(role)
+    setSelectedPersonCustomRole(customRole)
     setFichaModalOpen(true)
   }
 
   const handleFichaModalClose = () => {
     setFichaModalOpen(false)
     setSelectedPerson(null)
+    setSelectedPersonRole(undefined)
+    setSelectedPersonCustomRole(undefined)
   }
 
   useEffect(() => {
@@ -206,68 +238,43 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
       try {
         setLoading(true)
         setError(null)
-        const result = await apiFetch<ContractDetails>(`/contracts/${contractId}`)
-        if (!cancelled) setData(result)
+        
+        // OPTIMIZATION: Fetch all data in parallel
+        const [result, session, editorsData, ncResult] = await Promise.all([
+          apiFetch<ContractDetails>(`/contracts/${contractId}`),
+          apiFetch<any>('/auth/session').catch(() => null),
+          apiFetch<any>(`/contracts/${contractId}/editors`).catch(() => ({ editors: [] })),
+          apiFetch<any[]>(`/contracts/${contractId}/non-conformities`).catch(() => [])
+        ])
+        
+        if (cancelled) return
+        
+        setData(result)
 
-        // Get current user and check permissions
-        try {
-          const session: any = await apiFetch('/auth/session')
-          if (!cancelled && session?.user) {
-            setCurrentUserId(session.user.id)
-            
-            // Check if user is creator or admin
-            const isCreator = result.contract.created_by === session.user.id
-            const isAdmin = session.user.role === 'ADMIN'
-            
-            // Check if user is an editor
-            const editorsData = await apiFetch<any>(`/contracts/${contractId}/editors`)
-            const isEditor = editorsData.editors?.some((e: any) => e.user.id === session.user.id) || false
-            
-            // User can manage editors if they are the creator or an admin
-            const canManage = isCreator || isAdmin
-            
-            // User can edit if they are creator, editor, or admin
-            const canEditContract = isCreator || isEditor || isAdmin
-            
-            console.log('🔐 Permission Check:', {
-              sessionUserId: session.user.id,
-              contractCreatedBy: result.contract.created_by,
-              isCreator,
-              isEditor,
-              isAdmin,
-              canManage,
-              canEdit: canEditContract
-            })
-            
-            setCanManageEditors(canManage)
-            setCanEdit(canEditContract)
-          } else {
-            console.warn('⚠️ No session found')
-          }
-        } catch (e) {
-          console.error('❌ Error checking permissions:', e)
+        // Process session and permissions
+        if (session?.user) {
+          setCurrentUserId(session.user.id)
+          
+          const isCreator = result.contract.created_by === session.user.id
+          const isAdmin = session.user.role === 'ADMIN'
+          const isEditor = editorsData.editors?.some((e: any) => e.user.id === session.user.id) || false
+          
+          setCanManageEditors(isCreator || isAdmin)
+          setCanEdit(isCreator || isEditor || isAdmin)
         }
 
-        // Fetch non-conformities
-        try {
-          const ncResult = await apiFetch<any[]>(`/contracts/${contractId}/non-conformities`)
-          if (!cancelled && ncResult) {
-            // Map to marker format if needed, or ensure API returns compatible format
-            // API returns: { id, km, description, severity, latitude, longitude, ... }
-            // Marker expects: { id, lat, lng, severity, description, km }
-            const markers: NonConformityMarker[] = ncResult.map(nc => ({
-              id: nc.id,
-              lat: Number(nc.latitude),
-              lng: Number(nc.longitude),
-              severity: nc.severity,
-              description: nc.description,
-              km: Number(nc.km)
-            })).filter(m => !isNaN(m.lat) && !isNaN(m.lng))
-            
-            setNonConformities(markers)
-          }
-        } catch (e) {
-          console.error('Error fetching non-conformities:', e)
+        // Process non-conformities
+        if (ncResult?.length) {
+          const markers: NonConformityMarker[] = ncResult.map(nc => ({
+            id: nc.id,
+            lat: Number(nc.latitude),
+            lng: Number(nc.longitude),
+            severity: nc.severity,
+            description: nc.description,
+            km: Number(nc.km)
+          })).filter(m => !isNaN(m.lat) && !isNaN(m.lng))
+          
+          setNonConformities(markers)
         }
       } catch (err: any) {
         if (!cancelled) setError(err?.message || 'Falha ao carregar detalhes')
@@ -318,16 +325,15 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
 
   const { contract, organization, participants } = data
 
-  // Clientes são todos EXCETO os cargos específicos da equipe interna
-  // NOTE: OUTRO é incluído em clientes porque custom client roles são mapeados para OUTRO
-  const clienteParticipants = participants.filter((p) =>
-    !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role.toUpperCase())
-  )
+  // Clientes: participantes com customRole (contatos do cliente digitados manualmente)
+  const clienteParticipants = participants.filter((p) => {
+    return p.custom_role !== null && p.custom_role !== undefined
+  })
 
-  // Equipe são apenas os cargos específicos internos
-  const equipeParticipants = participants.filter((p) =>
-    ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(p.role.toUpperCase())
-  )
+  // Equipe: participantes SEM custom_role (vindos do PersonSearch como fichas internas)
+  const equipeParticipants = participants.filter((p) => {
+    return !p.custom_role
+  })
 
   const sections = [
 
@@ -776,7 +782,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                     clienteParticipants.map((p, i) => (
                       <div
                         key={i}
-                        onClick={() => handlePersonClick(p.person, 'CLIENTE')}
+                        onClick={() => handlePersonClick(p.person, 'CLIENTE', p.role, p.custom_role)}
                         className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-secondary dark:hover:border-secondary transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-purple-50/30 dark:from-gray-800 dark:to-purple-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-secondary dark:text-secondary-light mb-2 uppercase tracking-wider">
@@ -810,7 +816,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
                     equipeParticipants.map((p, i) => (
                       <div
                         key={i}
-                        onClick={() => handlePersonClick(p.person, 'INTERNA')}
+                        onClick={() => handlePersonClick(p.person, 'INTERNA', p.role, p.custom_role)}
                         className="group p-6 rounded-2xl border-2 border-slate-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:scale-102 bg-gradient-to-br from-white to-green-50/30 dark:from-gray-800 dark:to-green-950/10 cursor-pointer"
                       >
                         <p className="text-xs font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wider">
@@ -1025,47 +1031,17 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
         onBack={() => setSelectedNonConformityId(null)}
       />
 
-      {/* Ficha Modal */}
-      <FichaModal
-        isOpen={fichaModalOpen}
-        onClose={handleFichaModalClose}
-        onSuccess={() => {}}
-        mode="view"
-        initialData={selectedPerson ? {
-          id: selectedPerson.id,
-          nome: selectedPerson.full_name,
-          email: selectedPerson.email || '',
-          celular: selectedPerson.phone || '',
-          cargo_cliente: selectedPerson.office || '',
-          tipo: selectedPersonType,
-          foto_perfil_url: '',
-          // Add other default fields that might be needed
-          cpf: '',
-          rg: '',
-          data_nascimento: '',
-          nacionalidade: '',
-          estado_civil: '',
-          genero: '',
-          telefone: '',
-          endereco: '',
-          numero: '',
-          complemento: '',
-          bairro: '',
-          cidade: '',
-          estado: '',
-          cep: '',
-          profissao: '',
-          registro_profissional: '',
-          especialidades: '',
-          resumo_profissional: '',
-          idiomas: '',
-          observacoes: '',
-          experiencias: [],
-          formacoes: [],
-          certificados: [],
-        } : undefined}
-        defaultTipo={selectedPersonType}
-      />
+      {/* Person View Modal */}
+      {selectedPerson && (
+        <PersonViewModal
+          isOpen={fichaModalOpen}
+          onClose={handleFichaModalClose}
+          person={selectedPerson}
+          type={selectedPersonType}
+          role={selectedPersonRole}
+          customRole={selectedPersonCustomRole}
+        />
+      )}
 
       {/* Mobile Action FAB - Only show if user can edit or manage editors */}
       {(canEdit || canManageEditors) && (

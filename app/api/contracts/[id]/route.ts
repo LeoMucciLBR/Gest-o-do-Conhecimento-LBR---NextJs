@@ -57,8 +57,13 @@ export async function GET(
 
   try {
     const { id } = await params
+    const startTime = Date.now()
+    console.log(`⏱️ [${id}] START loading contract`)
 
+    // First query: get contract (needed to check if exists and get organization_id)
     const c = await prisma.contracts.findUnique({ where: { id } })
+    console.log(`⏱️ [${id}] Contract query: ${Date.now() - startTime}ms`)
+    
     if (!c) {
       return NextResponse.json(
         { error: 'Contrato não encontrado' },
@@ -66,16 +71,47 @@ export async function GET(
       )
     }
 
-    const org = c.organization_id
-      ? await prisma.organizations.findUnique({
-          where: { id: c.organization_id },
-        })
-      : null
-
-    const participants = await prisma.contract_participants.findMany({
-      where: { contract_id: id },
-      select: { role: true, custom_role: true, person_id: true },
-    })
+    const parallelStart = Date.now()
+    // OPTIMIZATION: Run independent queries in parallel
+    const [org, participants, documents, obrasRaw, companyParticipations] = await Promise.all([
+      // Organization
+      c.organization_id
+        ? prisma.organizations.findUnique({ where: { id: c.organization_id } })
+        : Promise.resolve(null),
+      
+      // Participants
+      prisma.contract_participants.findMany({
+        where: { contract_id: id },
+        select: { role: true, custom_role: true, person_id: true },
+      }),
+      
+      // Documents
+      prisma.contract_documents.findMany({
+        where: { contract_id: id },
+        orderBy: { created_at: 'desc' },
+      }),
+      
+      // Obras
+      prisma.obras.findMany({
+        where: { contract_id: id },
+        select: {
+          id: true,
+          nome: true,
+          km_inicio: true,
+          km_fim: true,
+          rodovia_id: true,
+        },
+      }),
+      
+      // Company participations
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT id, company_name, participation_percentage, empresa_id, created_at, updated_at
+        FROM contract_company_participation
+        WHERE contract_id = $1::uuid
+        ORDER BY created_at
+      `, id),
+    ])
+    console.log(`⏱️ [${id}] Parallel queries: ${Date.now() - parallelStart}ms (${obrasRaw.length} obras)`)
 
     type PersonLite = {
       id: string
@@ -86,6 +122,8 @@ export async function GET(
       organization_id: string | null
     }
 
+    // Fetch people (depends on participants result)
+    const peopleStart = Date.now()
     let people: PersonLite[] = []
     if (participants.length) {
       const ids = participants.map((p) => p.person_id)
@@ -101,36 +139,24 @@ export async function GET(
         },
       })
     }
+    console.log(`⏱️ [${id}] People query: ${Date.now() - peopleStart}ms`)
 
-    const documents = await prisma.contract_documents.findMany({
-      where: { contract_id: id },
-      orderBy: { created_at: 'desc' },
-    })
-
-    // Fetch obras with geometries
-    const obrasRaw = await prisma.obras.findMany({
-      where: { contract_id: id },
-      select: {
-        id: true,
-        nome: true,
-        km_inicio: true,
-        km_fim: true,
-        rodovia_id: true,
-      },
-    })
-
-    // Fetch rodovias info to get UF and geometria
-    const rodoviasIds = obrasRaw.map((o) => o.rodovia_id)
+    // Fetch rodovias info in batch (depends on obras result)
+    const rodoviasStart = Date.now()
+    const rodoviasIds = obrasRaw.map((o) => o.rodovia_id).filter(Boolean)
     const rodovias = rodoviasIds.length
       ? await prisma.$queryRawUnsafe<any[]>(
           `SELECT id, uf, nome, codigo, ST_AsGeoJSON(geometria) as geometria FROM rodovias WHERE id = ANY($1)`,
           rodoviasIds
         )
       : []
+    console.log(`⏱️ [${id}] Rodovias query: ${Date.now() - rodoviasStart}ms`)
 
     const rodoviasMap = new Map(rodovias.map((r) => [r.id, r]))
+    
+    const geometryStart = Date.now()
 
-    // Combine obras with rodovia data and fetch geometry using advanced PostGIS query
+    // Process obras with geometry (optimized - removed debug queries)
     const obras = await Promise.all(obrasRaw.map(async (obra) => {
       const rodovia = rodoviasMap.get(obra.rodovia_id)
       
@@ -144,19 +170,18 @@ export async function GET(
         if (isNumeric || rodovia.nome.startsWith('BR-')) {
           tipo_rodovia = 'FEDERAL'
           br_codigo = rodovia.nome.replace('BR-', '').replace(/\/.*$/, '')
-          // Ensure 3 digits for BR code (e.g. "050")
           if (br_codigo.length < 3) {
              br_codigo = br_codigo.padStart(3, '0')
           }
-          rodovia_nome = rodovia.codigo // Use codigo (e.g. "BR-050") for the query
+          rodovia_nome = rodovia.codigo
         }
       }
 
-      // Calculate geometry using the complex PostGIS query provided by the user
       let geometria = null
       
       if (rodovia && obra.km_inicio !== null && obra.km_fim !== null) {
         try {
+          // Main PostGIS query for geometry calculation
           const query = `
             WITH params AS (
               SELECT
@@ -230,49 +255,6 @@ export async function GET(
             FROM unido;
           `
           
-          // Debug: Count how many segments match the criteria
-          const debugQuery = `
-            SELECT COUNT(*) as segment_count
-            FROM segmento_rodovia s
-            JOIN rodovias r ON r.codigo = s.rodovia_codigo
-            WHERE r.uf = $1
-              AND (r.nome = $2 OR r.codigo = $2 OR r.nome LIKE $2 || '/%')
-              AND s.km_final >= $3
-              AND s.km_inicial <= $4
-          `
-          
-          const debugResult: any[] = await prisma.$queryRawUnsafe(
-            debugQuery,
-            rodovia.uf,
-            rodovia_nome,
-            Number(obra.km_inicio),
-            Number(obra.km_fim)
-          )
-          
-          console.log(`🔍 Obra ${obra.id}: Found ${debugResult[0]?.segment_count || 0} matching segments for ${rodovia_nome} KM ${obra.km_inicio}-${obra.km_fim}`)
-          
-          // Debug: Show sample segment data for federal highways
-          if (tipo_rodovia === 'FEDERAL' && debugResult[0]?.segment_count > 5) {
-            const sampleQuery = `
-              SELECT s.km_inicial, s.km_final, s.rodovia_codigo
-              FROM segmento_rodovia s
-              JOIN rodovias r ON r.codigo = s.rodovia_codigo
-              WHERE r.uf = $1
-                AND (r.nome = $2 OR r.codigo = $2 OR r.nome LIKE $2 || '/%')
-              LIMIT 5
-            `
-            const sampleResult: any[] = await prisma.$queryRawUnsafe(
-              sampleQuery,
-              rodovia.uf,
-              rodovia_nome
-            )
-            console.log(`📊 Sample segments for ${rodovia_nome}:`, sampleResult.map(s => ({
-              codigo: s.rodovia_codigo,
-              km_inicial: s.km_inicial?.toString() || 'NULL',
-              km_final: s.km_final?.toString() || 'NULL'
-            })))
-          }
-          
           const result: any[] = await prisma.$queryRawUnsafe(
             query, 
             rodovia.uf, 
@@ -281,103 +263,56 @@ export async function GET(
             Number(obra.km_fim)
           )
           
-          if (result && result.length > 0 && result[0].geojson) {
-             // The query returns a FeatureCollection, but our map expects a single Feature or Geometry
-             // Extract the geometry from the FeatureCollection
-             const featureCollection = result[0].geojson
-             if (featureCollection.features && featureCollection.features.length > 0) {
-                geometria = featureCollection.features[0].geometry
-                console.log(`✅ Obra ${obra.id}: PostGIS query returned geometry`, {
-                  type: geometria?.type,
-                  hasCoordinates: !!geometria?.coordinates,
-                  coordinatesLength: geometria?.coordinates?.length
-                })
-             } else {
-                console.warn(`⚠️ Obra ${obra.id}: PostGIS query returned empty FeatureCollection`)
-             }
-          } else {
-            console.warn(`⚠️ Obra ${obra.id}: PostGIS query returned no results`)
+          if (result?.[0]?.geojson?.features?.[0]?.geometry) {
+            geometria = result[0].geojson.features[0].geometry
           }
-          
-          console.log(`Calculated geometry for Obra ${obra.id}:`, {
-             found: !!geometria,
-             params: { uf: rodovia.uf, rodovia: rodovia_nome, km_ini: Number(obra.km_inicio), km_fim: Number(obra.km_fim) },
-             willUseFallback: !geometria && !!rodovia.geometria
-          })
-          
-        } catch (err) {
-          console.error(`Error calculating geometry for Obra ${obra.id}:`, err)
+        } catch {
+          // Silent fail - will try fallback
         }
         
-        
-        // FALLBACK: If segmento_rodovia is empty, use approximation for geometry
+        // FALLBACK: Use approximation if main query fails
         if (!geometria && rodovia.geometria) {
           try {
             if (tipo_rodovia === 'FEDERAL') {
-              // For federal highways, try to approximate the segment using total highway length
-              console.warn(`⚠️ Obra ${obra.id}: Using approximation for federal highway (no detailed segment data)`)
-              
-              // Get the total KM range of the highway
-              const totalKmInicio = 0 // Federal highways typically start at KM 0
-              const totalKmFim = 1000 // Conservative estimate - will adjust based on geometry if possible
-              
-              // Calculate approximate percentages for ST_LineSubstring
               const obraKmInicio = Number(obra.km_inicio)
               const obraKmFim = Number(obra.km_fim)
+              const totalKmFim = 1000
               
               const startFraction = Math.max(0, Math.min(1, obraKmInicio / totalKmFim))
               const endFraction = Math.max(0, Math.min(1, obraKmFim / totalKmFim))
               
-              console.log(`Approximating federal highway segment: KM ${obraKmInicio}-${obraKmFim}, fraction: ${startFraction}-${endFraction}`)
+              const cutQuery = `
+                SELECT ST_AsGeoJSON(
+                  ST_LineSubstring(
+                    geometria::geography::geometry,
+                    $1::float,
+                    $2::float
+                  )
+                ) as geojson
+                FROM rodovias
+                WHERE id = $3
+              `
               
-              // Try to use PostGIS to cut the line
-              try {
-                const cutQuery = `
-                  SELECT ST_AsGeoJSON(
-                    ST_LineSubstring(
-                      geometria::geography::geometry,
-                      $1::float,
-                      $2::float
-                    )
-                  ) as geojson
-                  FROM rodovias
-                  WHERE id = $3
-                `
-                
-                const cutResult: any[] = await prisma.$queryRawUnsafe(
-                  cutQuery,
-                  startFraction,
-                  endFraction,
-                  obra.rodovia_id
-                )
-                
-                if (cutResult && cutResult.length > 0 && cutResult[0].geojson) {
-                  geometria = JSON.parse(cutResult[0].geojson)
-                  console.log(`✅ Obra ${obra.id}: Approximated federal highway geometry`)
-                }
-              } catch (cutErr) {
-                console.error(`Error cutting federal highway geometry:`, cutErr)
-                // Fall back to full geometry if cutting fails
-                const parsedGeometry = typeof rodovia.geometria === 'string' 
-                  ? JSON.parse(rodovia.geometria) 
-                  : rodovia.geometria
-                geometria = parsedGeometry
-                console.log(`⚠️ Obra ${obra.id}: Using full federal highway geometry (approximation failed)`)
+              const cutResult: any[] = await prisma.$queryRawUnsafe(
+                cutQuery,
+                startFraction,
+                endFraction,
+                obra.rodovia_id
+              )
+              
+              if (cutResult?.[0]?.geojson) {
+                geometria = JSON.parse(cutResult[0].geojson)
               }
-              
-            } else {
-              // For state highways, use full geometry as fallback
-              console.warn(`⚠️ Obra ${obra.id}: segmento_rodovia empty, using fallback (full highway geometry)`)
-              
-              const parsedGeometry = typeof rodovia.geometria === 'string' 
+            }
+            
+            // Final fallback: use full geometry
+            if (!geometria) {
+              geometria = typeof rodovia.geometria === 'string' 
                 ? JSON.parse(rodovia.geometria) 
                 : rodovia.geometria
-              
-              geometria = parsedGeometry
-              console.log(`✅ Obra ${obra.id}: Fallback geometry loaded (type: ${geometria?.type})`)
             }
-          } catch (fallbackErr) {
-            console.error(`Error loading fallback geometry for Obra ${obra.id}:`, fallbackErr)
+          } catch {
+            // Silent fail
           }
         }
       }
@@ -394,6 +329,7 @@ export async function GET(
         br_codigo,
       }
     }))
+    console.log(`⏱️ [${id}] Geometry loop: ${Date.now() - geometryStart}ms`)
 
     const participantsWithPerson = participants.map((p) => ({
       role: p.role,
@@ -401,20 +337,14 @@ export async function GET(
       person: people.find((pp) => pp.id === p.person_id) ?? null,
     }))
 
-    // Fetch company participations
-    const companyParticipations = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, company_name, participation_percentage, empresa_id, created_at, updated_at
-      FROM contract_company_participation
-      WHERE contract_id = $1::uuid
-      ORDER BY created_at
-    `, id)
-
     // Extract lamina_url and image_url from documents
     const laminaDoc = documents.find(d => d.kind === 'LAMINA')
     const coverDoc = documents.find(d => d.kind === 'COVER_IMAGE')
     
     const lamina_url = laminaDoc?.storage_url || null
     const image_url = coverDoc?.storage_url || null
+
+    console.log(`⏱️ [${id}] TOTAL: ${Date.now() - startTime}ms`)
 
     return NextResponse.json({
       contract: {
@@ -544,8 +474,31 @@ export async function PUT(
 
       if (dto.participants?.length) {
         for (const p of dto.participants) {
-          let personId = p.personId ?? null
+          let personId: string | null = null
 
+          // If personId is provided, verify it exists in people table
+          if (p.personId) {
+            const existingPerson = await tx.people.findUnique({
+              where: { id: p.personId },
+              select: { id: true }
+            })
+            if (existingPerson) {
+              personId = existingPerson.id
+              // Update person data if provided
+              if (p.person) {
+                await tx.people.update({
+                  where: { id: personId },
+                  data: {
+                    email: p.person.email ?? undefined,
+                    phone: p.person.phone ?? undefined,
+                    office: p.person.office ?? undefined,
+                  },
+                })
+              }
+            }
+          }
+
+          // If personId not found or not provided, search by name/email
           if (!personId && p.person?.full_name?.trim()) {
             const full_name = p.person.full_name.trim()
             let found: { id: string } | null = null

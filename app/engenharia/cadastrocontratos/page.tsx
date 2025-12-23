@@ -72,6 +72,7 @@ function buildParticipants(form: FormData) {
   const arr = [
     // Client participants (dynamic)
     ...form.clientPersons.map(person => ({
+      personId: person.personId || null, // Include personId if available
       role: person.role,
       person: {
         full_name: person.name,
@@ -82,6 +83,7 @@ function buildParticipants(form: FormData) {
     })),
     // Team members (dynamic)
     ...form.teamMembers.map(member => ({
+      personId: member.personId || null, // Include personId if available
       role: member.role,
       person: {
         full_name: member.name,
@@ -215,6 +217,15 @@ export default function CadastroContrato() {
         const organization = data.organization || {}
         const participants = data.participants || []
 
+        // DEBUG: Log para entender os participantes
+        console.log('=== DEBUG LOAD CONTRACT ===')
+        console.log('Total participants:', participants.length)
+        console.log('Participants:', JSON.stringify(participants.map((p: any) => ({
+          role: p.role,
+          custom_role: p.custom_role,
+          name: p.person?.full_name
+        })), null, 2))
+
         const getPerson = (role: string) => {
           const participant = participants.find((p: any) => 
             (p.role || '').toUpperCase() === role.toUpperCase()
@@ -254,31 +265,27 @@ export default function CadastroContrato() {
           },
           clientPersons: participants
             .filter((p: any) => {
-              const role = (p.role || '').toUpperCase()
-              // Include all client-type participants except internal team
-              // NOTE: OUTRO is excluded from this filter as it can be either client or team
-              return !['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(role)
+              // Clientes têm custom_role (role digitada manualmente no formulário)
+              return p.custom_role !== null && p.custom_role !== undefined && p.custom_role !== ''
             })
             .map((p: any, index: number) => ({
               id: `loaded-client-${index}`,
-              personId: p.person_id || '',
+              personId: p.person?.id || '',
               name: p.person?.full_name || '',
-              role: p.custom_role || p.role || 'OUTRO', // Use custom_role if available
+              role: p.custom_role || p.role || 'OUTRO',
               email: p.person?.email || '',
               phone: p.person?.phone || ''
             })),
           teamMembers: participants
             .filter((p: any) => {
-              const role = (p.role || '').toUpperCase()
-              // Include only internal team members
-              // NOTE: OUTRO is included in clients, not team, since custom client roles map to OUTRO
-              return ['COORDENADORA', 'ENGENHEIRO_RESPONSAVEL', 'GERENTE_PROJETO', 'ANALISTA'].includes(role)
+              // Equipe NÃO tem custom_role (são fichas selecionadas do PersonSearch)
+              return !p.custom_role
             })
             .map((p: any, index: number) => ({
               id: `loaded-team-${index}`,
-              personId: p.person_id || '',
+              personId: p.person?.id || '',
               name: p.person?.full_name || '',
-              role: p.custom_role || p.role || 'OUTRO', // Use custom_role if available
+              role: p.role || 'OUTRO',
               email: p.person?.email || '',
               phone: p.person?.phone || ''
             })),
@@ -497,8 +504,8 @@ export default function CadastroContrato() {
         {/* Header */}
         <div className="text-center mb-6 sm:mb-10 animate-in fade-in slide-in-from-top duration-700">
           <div className="inline-block px-2">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-lbr-primary via-secondary to-accent dark:from-lbr-primary dark:via-secondary-dark dark:to-accent-dark bg-clip-text text mb-3 animate-in zoom-in duration-500 break-words">
-              {isEdit ? '✏️ Editar Contrato' : '✨ Novo Contrato'}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-lbr-primary via-secondary to-accent dark:from-lbr-primary dark:via-secondary-dark dark:to-accent-dark bg-clip-text text mb-3 animate-in zoom-in duration-500 break-words" suppressHydrationWarning>
+              {isEdit ? 'Editar Contrato' : 'Novo Contrato'}
             </h1>
             <div className="h-1 bg-gradient-to-r from-lbr-primary via-secondary to-accent rounded-full animate-in slide-in-from-left duration-700" />
           </div>

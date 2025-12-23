@@ -55,6 +55,7 @@ export default function Contratos() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentUserId, setCurrentUserId] = useState<string | undefined>()
   const [contractsWithNotifications, setContractsWithNotifications] = useState<Set<string>>(new Set())
+  const [navigatingId, setNavigatingId] = useState<string | null>(null)
   
   // ============================================
   // HOOKS OFFLINE - Usa cache IndexedDB primeiro
@@ -119,6 +120,9 @@ export default function Contratos() {
 
   // Marca notificação como lida ao clicar no card
   const handleCardClick = useCallback(async (contractId: string) => {
+    // Mostrar loading imediato
+    setNavigatingId(contractId)
+    
     if (isOnline) {
       apiFetch(`/contracts/${contractId}/mark-read`, { method: 'POST' })
         .then(() => {
@@ -186,7 +190,16 @@ export default function Contratos() {
     <div className="relative text-center duration-300 ease-in-out min-h-screen">
       <AnimatedBackground />
 
-      {/* Banner Offline - só aparece após hydration */}
+      {/* Loading Overlay - aparece imediatamente ao clicar em um contrato */}
+      {navigatingId && (
+        <div className="fixed inset-0 z-[100] bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center animate-in fade-in zoom-in duration-300">
+            <Loader2 className="w-16 h-16 text-[#2f4982] animate-spin mx-auto mb-4" />
+            <p className="text-lg font-semibold text-[#2f4982] dark:text-blue-400">Abrindo contrato...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Aguarde um momento</p>
+          </div>
+        </div>
+      )}
       {showOfflineBanner && (
         <div className="sticky top-0 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 px-4 flex items-center justify-center gap-2 text-sm font-medium shadow-lg">
           <WifiOff className="w-4 h-4" />
