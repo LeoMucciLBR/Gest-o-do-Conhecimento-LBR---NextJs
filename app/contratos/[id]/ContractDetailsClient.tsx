@@ -23,6 +23,7 @@ import {
   Code,
   User,
   AlertCircle,
+  Archive,
   LayoutDashboard,
   DollarSign,
   Calendar,
@@ -342,6 +343,7 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
     { id: 'medicoes', label: 'MEDIÇÕES', icon: <Ruler className="w-6 h-6" />, gradient: 'from-violet-500 to-purple-500' },
     { id: 'produtos', label: 'PRODUTOS', icon: <Box className="w-6 h-6" />, gradient: 'from-pink-500 to-rose-500' },
     { id: 'software', label: 'SOFTWARE', icon: <Code className="w-6 h-6" />, gradient: 'from-indigo-500 to-blue-500' },
+    { id: 'acervos', label: 'ACERVOS', icon: <Archive className="w-6 h-6" />, gradient: 'from-teal-500 to-cyan-600' },
     { id: 'cliente', label: 'INFORMAÇÕES CLIENTE', icon: <User className="w-6 h-6" />, gradient: 'from-secondary to-pink-500' },
     { id: 'equipe', label: 'INFORMAÇÕES EQUIPE', icon: <Users className="w-6 h-6" />, gradient: 'from-green-500 to-emerald-500' },
     { id: 'dificuldades', label: 'DIFICULDADES E APRENDIZADOS', icon: <AlertCircle className="w-6 h-6" />, gradient: 'from-red-500 to-orange-600' },
@@ -661,49 +663,93 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
               <span className="w-2 h-2 bg-gradient-to-r from-lbr-primary to-secondary rounded-full animate-pulse" />
               <span className="text-lg sm:text-3xl">Informações Detalhadas</span>
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              {sections.map((section, index) => (
-                <button
-                  key={section.id}
-                  onClick={() => {
-                    // Special handling for LÂMINA - open modal directly
-                    if (section.id === 'lamina') {
-                      if (contract.lamina_url) {
-                        setPdfModalOpen(true)
+            {/* Layout 5+4 */}
+            <div className="flex flex-col gap-3 sm:gap-6">
+              {/* Row 1: 5 items */}
+              <div className="grid grid-cols-5 gap-3 sm:gap-4">
+                {sections.slice(0, 5).map((section, index) => (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      if (section.id === 'lamina') {
+                        if (contract.lamina_url) {
+                          setPdfModalOpen(true)
+                        } else {
+                          setSelectedSection(selectedSection === section.id ? null : section.id)
+                        }
                       } else {
                         setSelectedSection(selectedSection === section.id ? null : section.id)
                       }
-                    } else {
-                      setSelectedSection(selectedSection === section.id ? null : section.id)
-                    }
-                  }}
-                  className={`group relative overflow-hidden rounded-2xl p-4 sm:p-6 transition-all duration-500 transform hover:scale-105 border border-slate-100 dark:border-gray-700 ${
-                    selectedSection === section.id
-                      ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
-                      : 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl'
-                  } animate-in fade-in slide-in-from-bottom duration-700`}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {/* Hover Overlay (User's request) */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982] to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none" />
+                    }}
+                    className={`group relative overflow-hidden rounded-2xl p-3 sm:p-5 transition-all duration-500 transform hover:scale-105 border border-slate-100 dark:border-gray-700 ${
+                      selectedSection === section.id
+                        ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
+                        : 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl'
+                    } animate-in fade-in slide-in-from-bottom duration-700`}
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982] to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none" />
+                    
+                    {selectedSection !== section.id && (
+                      <div className={`absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r ${section.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
+                    )}
 
-                  {/* Bottom Border Highlight (Sliding Animation) */}
-                  {selectedSection !== section.id && (
-                    <div className={`absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r ${section.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
-                  )}
-
-                  <div className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 text-center">
-                    <div className={`p-3 sm:p-4 rounded-2xl shadow-lg transition-all duration-500 bg-gradient-to-br ${section.gradient} text-white group-hover:scale-110`}>
-                      {section.icon}
+                    <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 text-center">
+                      <div className={`p-2 sm:p-3 rounded-xl shadow-lg transition-all duration-500 bg-gradient-to-br ${section.gradient} text-white group-hover:scale-110`}>
+                        {section.icon}
+                      </div>
+                      <span className={`font-bold text-[10px] sm:text-xs uppercase tracking-wider ${
+                        selectedSection === section.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'
+                      }`}>
+                        {section.label}
+                      </span>
                     </div>
-                    <span className={`font-bold text-xs sm:text-sm uppercase tracking-wider ${
-                      selectedSection === section.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'
-                    }`}>
-                      {section.label}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Row 2: 4 items centered */}
+              <div className="grid grid-cols-4 gap-3 sm:gap-4 max-w-[80%] mx-auto">
+                {sections.slice(5, 9).map((section, index) => (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      if (section.id === 'lamina') {
+                        if (contract.lamina_url) {
+                          setPdfModalOpen(true)
+                        } else {
+                          setSelectedSection(selectedSection === section.id ? null : section.id)
+                        }
+                      } else {
+                        setSelectedSection(selectedSection === section.id ? null : section.id)
+                      }
+                    }}
+                    className={`group relative overflow-hidden rounded-2xl p-3 sm:p-5 transition-all duration-500 transform hover:scale-105 border border-slate-100 dark:border-gray-700 ${
+                      selectedSection === section.id
+                        ? 'bg-gradient-to-br from-[#2f4982] to-blue-700 text-white shadow-2xl scale-105 ring-4 ring-blue-700/30'
+                        : 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl'
+                    } animate-in fade-in slide-in-from-bottom duration-700`}
+                    style={{ animationDelay: `${(index + 5) * 100}ms` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#2f4982] to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none" />
+                    
+                    {selectedSection !== section.id && (
+                      <div className={`absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r ${section.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
+                    )}
+
+                    <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3 text-center">
+                      <div className={`p-2 sm:p-3 rounded-xl shadow-lg transition-all duration-500 bg-gradient-to-br ${section.gradient} text-white group-hover:scale-110`}>
+                        {section.icon}
+                      </div>
+                      <span className={`font-bold text-[10px] sm:text-xs uppercase tracking-wider ${
+                        selectedSection === section.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'
+                      }`}>
+                        {section.label}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1014,6 +1060,28 @@ export default function ContractDetailsClient({ contractId }: ContractDetailsCli
               {selectedSection === 'software' && (
                  <div className="animate-in fade-in slide-in-from-right duration-500">
                   <SoftwareExplorer contractId={contractId} />
+                </div>
+              )}
+              
+              {selectedSection === 'acervos' && (
+                <div className="animate-in fade-in slide-in-from-right duration-500">
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl p-8 border border-gray-200/50 dark:border-gray-700/50 shadow-xl">
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center mb-6 shadow-xl">
+                        <Archive className="w-10 h-10 text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                        Acervos
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
+                        Em breve você poderá gerenciar os acervos e documentos históricos deste contrato.
+                      </p>
+                      <div className="flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 font-medium">
+                        <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                        Funcionalidade em desenvolvimento
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -93,6 +93,8 @@ export async function POST(request: NextRequest) {
 
           status: (dto.status as any) ?? 'Ativo',
           location: dto.location ?? null,
+          client_office_location: (dto as any).clientOfficeLocation ?? null,
+          lbr_office_location: (dto as any).lbrOfficeLocation ?? null,
           data_inicio: dto.dataInicio ? new Date(dto.dataInicio) : null,
           data_fim: dto.dataFim ? new Date(dto.dataFim) : null,
           valor: dto.valor ?? null,
