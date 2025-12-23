@@ -79,10 +79,10 @@ interface UseOfflineContractsOptions {
 export function useOfflineContracts(options: UseOfflineContractsOptions = {}) {
   const { status, search } = options
   
-  // Dados do IndexedDB (reactive)
+  // Dados do IndexedDB (reactive) - agora passa o filtro de status diretamente
   const localContracts = useLiveQuery(
-    () => getAllContracts(),
-    [],
+    () => getAllContracts(status), // Filtra no IndexedDB
+    [status], // Dependência: re-executa quando status muda
     [] // fallback value
   )
   

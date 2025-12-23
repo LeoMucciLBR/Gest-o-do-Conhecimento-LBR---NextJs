@@ -396,13 +396,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')
     const status = searchParams.get('status')
+    const includeAll = searchParams.get('includeAll') === 'true'
     const page = Math.max(1, Number(searchParams.get('page') ?? 1))
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 12)))
 
     const where: any = {
       is_deleted: false // Filtrar contratos não deletados
     }
-    if (status) where.status = status as any
+    
+    // Se um status específico foi passado, usa ele
+    // Se includeAll=true, não filtra por status
+    // Caso contrário (padrão), mostra apenas ativos
+    if (status) {
+      where.status = status as any
+    } else if (!includeAll) {
+      where.status = 'Ativo' // Padrão: apenas contratos ativos
+    }
+    
     if (q?.trim()) {
       const term = q.trim()
       where.OR = [

@@ -56,10 +56,14 @@ const SEGMENT_QUERY = `
 
 export async function GET() {
   try {
-    // Buscar todas as obras que têm contract_id (ligadas a contratos)
+    // Buscar todas as obras que têm contract_id (ligadas a contratos ATIVOS)
     const obrasRaw = await prisma.obras.findMany({
       where: {
-        contract_id: { not: null }
+        contract_id: { not: null },
+        contract: {
+          status: 'Ativo',
+          is_deleted: false
+        }
       },
       select: {
         id: true,
@@ -72,7 +76,8 @@ export async function GET() {
         contract: {
           select: {
             name: true,
-            object: true
+            object: true,
+            status: true
           }
         }
       }

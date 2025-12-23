@@ -54,9 +54,15 @@ export function toOfflineContract(
 
 /**
  * Obtém todos os contratos do cache local
+ * @param statusFilter Opcional - filtrar por status específico (ex: 'Ativo')
  */
-export async function getAllContracts(): Promise<OfflineContract[]> {
-  return db.contracts.orderBy('created_at').reverse().toArray()
+export async function getAllContracts(statusFilter?: string): Promise<OfflineContract[]> {
+  const contracts = await db.contracts.orderBy('created_at').reverse().toArray()
+  // Se um filtro de status foi passado, filtra os resultados
+  if (statusFilter) {
+    return contracts.filter(c => c.status === statusFilter)
+  }
+  return contracts
 }
 
 /**
